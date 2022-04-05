@@ -1,0 +1,54 @@
+tools and articles for letters and words
+
+WordGrabber
+» Word Generators
+» Letter Sorting
+
+
+up to 15 characters
+
+up to 15 characterslast pattern
+✕Last included patterns. Click to use them.
+
+Last included patterns. Click to use them.
+The Letter Sorting Word Generator helps you to make words from letters. It comes with a built-in option of using a pattern to create specific words. This word generator, or rather word maker, is not bound to any specific word game.
+The Letter Sorting Word Generator can be of great help to find words from letters for competitions, newspaper riddles, or even for your homework! We keep the word lists of all our Word Generators constantly updated, so that you can have access to a large variety of options to unscramble words.
+The Letter Sorting Tool consists of two fields. Into the field above, type in all the letters you got and want to make words from. In the second field below, you can type in an optional pattern from which to create specific words. Please remember that both fields are limited to 15 characters maximum.
+In order to start sorting the letters and to create words, just enter any given letter into the first input field at the top of the word generator. Then press ENTER or click GRAB IT. The results will then be listed according to your preferences, either sorted by length or sorted alphabetically. Please note that the results might not contain all the letters you have typed in.
+Our Letter Sorting Word Generator gives you the possibility to make words from letters by using an optional pattern. There are two different kinds of characters that can be used here. First of all, you can use any letter you want to appear in the results. Please note that the letters in the pattern are used in addition to the letters you enter into the letter field.
+
+The letter E was typed into both the letter field and into the pattern field, which can lead to results with up to two E’s inside. Make sure that you don’t use letters that you do not have at your disposal.
+The second kind of character that can be used to make words from letters is the dot (.). A single dot marks an optional empty field and represents possible letters in the words you want to create. Please note that if you use patterns, the results will be no longer than the number of characters you entered into the pattern field. So, always make sure to use plenty of dots here. If you don’t type anything into the pattern field, there is no maximum length for the unscrambled words.
+
+If you want to make words from letters that consist of exactly for letters, use four dots in the pattern field, representing one letter with each dot.
+For more detailed information on how to use the pattern field, have a look at this tutorial on using patterns.
+Leave the pattern field of our Word Maker empty and the words will be made exclusively from the letters you have typed into the letter field. Please keep in mind, there is a limit to 15 characters that you can type in.
+The Characters you can use in the pattern field are single DOTS, representing empty optional fields. You can also type in LETTERS, of course, and, finally NUMBERS to represent bonus fields in word games.
+The dots (.) represent optional empty fields that indicate the possible length of words.
+They serve as place holders for the letters, your words will eventually consist of. In addition to the LETTERS you typed into the pattern field, the DOTS will also make up for the variety of words possible. The NUMBERS represent the bonus fields for games like Scrabble® or Words with Friends, for example double and triple letter bonus fields (numbers 2 and 3) and double or triple word bonus fields (numbers 4 and 5).
+If you want to aim for high scoring words from your bouquet of letters that is BUTILIKEIT, you should make use of the numbers in the pattern field. The maximum word length in this example is limited to a total of eight letters. Each letter is represented by a single DOT. You may require for example the third letter of the word to be the highest scoring for a triple letter count, represented by the number 3 (indicated blue) and the sixth letter to be the highest scoring for a triple word count, represented by the number 5 (indicated red). The longest possible word here has no more than seven letters, still, the word generator provides you with the highest scoring words possible according to your preferences.
+
+You can also search for words with specific letters at the beginning or at the end of each word. For example, you can search for 9-letter words with BE at the beginning. Simply type BE……. into the pattern field, using a DOT for each following letter.
+
+Think about the following set as an example:
+• Letters: ABCDEFG
+• Pattern: …O..
+In this example, all the words created will contain an O, with up to three letters before it and no more than two letters after it. Thus, the longest possible word will have six letters. In this case, the word maker will sort the letters to make words like ABODE, BEFOG and BOCA. As you can see, not all of the letters need to be used.
+
+No Matter How Bad They Are: You CAN Make a Word Using These Letters 
+Scrabble contains some letters that you always struggle to make words with. We show you how to deal with them and make words from those inconspicuous letters.
+A, B, C: How We Make Words with These Letters 
+Here you can learn something about how we make words from letters, how they work, where they come from, and how and why we can read them.
+Word Cognition Makes Scrambled Letters Readable 
+Word cognition allows us to read texts full of scrambled letters. word-grabber.com explains how this is achieved.
+
+
+When you think of word Games, probably a lot of words come to your mind: Entertaining, educating, fun, captivating, relaxing – or perhaps even nerve-racking, brain-frying or challenging? All are applicable associations, but did you ever think of beautiful, charming, optically pleasing in regards to “Scrabble”, “Words With Friends” or similar games? Usually, those categories are reserved for dress up games […]
+Word riddles & Quiz questions
+Do you prefer crosswords? Just try out our Crossword Solver. Here you are sure to find the right clues to solve the crossword. » Crossword Solver « We offer free help for word riddles and quiz questions. Our Crossword Help searches for more than 43,500 questions and 179,000 solutions to help you solve your game.
+Sharing and Contact
+Liked over 555 times
+Article Categories
+
+This website uses Cookies.  For more information please see our Privacy Policy.
+Build d20210914.1506, contact: admin at wordsolver.netWORDSOLVER is a registered trademark.

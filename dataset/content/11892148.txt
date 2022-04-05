@@ -1,0 +1,10 @@
+The Java Tutorials have been written for JDK 8. Examples and practices described in this page don't take advantage of improvements introduced in later releases and might use technology no longer available.See Java Language Changes for a summary of updated language features in Java SE 9 and subsequent releases.See JDK Release Notes for information about new features, enhancements, and removed or deprecated options for all JDK releases.
+The following quick reference summarizes the operators supported by the Java programming language.
+
+About Oracle | 
+Contact Us |
+Legal Notices | 
+Terms of Use |
+Your Privacy Rights
+
+Copyright © 1995, 2022 Oracle and/or its affiliates. All rights reserved.
