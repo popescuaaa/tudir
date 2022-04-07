@@ -6,6 +6,7 @@ from dataset.squad.iterators import create_query_document_lists_squad as squad_q
 
 from collections import defaultdict
 from typing import Callable, Dict, List, Tuple
+from plot import plot_distribution, plot_cummulative_dsitribution
 import numpy as np
 from tokenization.corpus_tokenizers import CorpusTokenizer, WhiteSpaceCorpusTokenizer
 from tqdm import tqdm
@@ -113,8 +114,13 @@ if __name__ == '__main__':
     # compute probability distribution
     probability_distribution = compute_pmi_distribution(pmi_scores)
     # bin distribution
-    binned_distribution = linspace_distribution_bin(probability_distribution)
+    binned_distribution = linspace_distribution_bin(probability_distribution, step_size=0.2)
     # print distribution
     for bin_range, cummulative_prob in binned_distribution.items():
         print(f'{bin_range}: {cummulative_prob}')
+    
+    # plot distribution
+    plot_distribution(values=[k[1] for k in binned_distribution.keys()], probs=[v for v in binned_distribution.values()])
+    # plot cummulative distribution
+    plot_cummulative_dsitribution(values=[k[1] for k in binned_distribution.keys()], probs=[v for v in binned_distribution.values()])
 

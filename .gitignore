@@ -3,12 +3,19 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+# image files
+*.png
+*.jpg
+*.jpeg
+*.gif
+
 # C extensions
 *.so
 
 # Distribution / packaging
 .Python
 build/
+squad-data/
 develop-eggs/
 dist/
 downloads/

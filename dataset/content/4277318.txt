@@ -1,8 +1,0 @@
-Begin learning here by typing in your first name surrounded by quotation marks, and ending with a semicolon. For example, you could type the name "Jamie";  and then hit enter.
-Breathe in. Breathe out. Turn your JavaScript frustrations into 3 minutes of Zen.
-Join Cassidy as she does a live build to celebrate JavaScript's 25th birthday. Warning: There might be cake.
-Join some of the most influential minds in JavaScript for a live discussion on what the future holds for the language.
-The free 25 Javascript courses are gone, but sign-up here to get access to 50 free courses
-© 2016 - 2022 JavaScript.com
-We use cookies to make interactions with our websites and services easy and meaningful. For more information about the cookies we use or to find out how you can disable cookies, click here.
-You have disabled non-critical cookies and are browsing in private mode. For the best possible experience on our website, please accept cookies. For additional details please read our privacy policy.
