@@ -38,7 +38,7 @@ def train_iterator_mul_files(files):
             for line in f:
                 yield line
 
-def train_WordPieceTokenizer(file_list: List[str], vocab_size=30_000, min_frequency=5, limit_alphabet=500):
+def train_WordPieceTokenizer(file_list: List[str], vocab_size=30_000, min_frequency=5, limit_alphabet=500, save: bool=True):
     """
     Train WP tokenizer from a list of files.
     """
@@ -57,11 +57,12 @@ def train_WordPieceTokenizer(file_list: List[str], vocab_size=30_000, min_freque
     else:
         trainer.train_from_iterator(file_list, trainer=trainer)
     
-    tokenizer.save("./WP_tok-trained.json")
-    tokenizer = Tokenizer.from_file("./WP_tok-trained.json")
+    if save:
+        tokenizer.save("./WP_tok-trained.json")
+        tokenizer = Tokenizer.from_file("./WP_tok-trained.json")
     return tokenizer
 
-def train_SentencePieceBPETokenizer(files: List[str], vocab_size=30_000, min_frequency=5, limit_alphabet=500):
+def train_SentencePieceBPETokenizer(files: List[str], vocab_size=30_000, min_frequency=5, limit_alphabet=500, save: bool=True):
     """
     trin SP_BPE tokenizer from a list of files.
     """
@@ -78,11 +79,13 @@ def train_SentencePieceBPETokenizer(files: List[str], vocab_size=30_000, min_fre
         show_progress=True,
         limit_alphabet=limit_alphabet,
     )
-    tokenizer.save("./SP_BPE_tok-trained.json")
-    tokenizer = Tokenizer.from_file("./SP_BPE_tok-trained.json")
+
+    if save:
+        tokenizer.save("./SP_BPE_tok-trained.json")
+        tokenizer = Tokenizer.from_file("./SP_BPE_tok-trained.json")
     return tokenizer  
 
-def train_SentencePieceUGTokenizer(filelist: List[str], vocab_size=30_000):
+def train_SentencePieceUGTokenizer(filelist: List[str], vocab_size=30_000, save: bool=True):
     """
     trin SP_UG tokenizer from a list of files.
     """
@@ -97,11 +100,12 @@ def train_SentencePieceUGTokenizer(filelist: List[str], vocab_size=30_000):
         vocab_size=vocab_size,
         show_progress=True
     )
-    tokenizer.save("./SP_UG_tok-trained.json")
-    tokenizer = Tokenizer.from_file("./SP_UG_tok-trained.json")
+    if save:
+        tokenizer.save("./SP_UG_tok-trained.json")
+        tokenizer = Tokenizer.from_file("./SP_UG_tok-trained.json")
     return tokenizer  
 
-def train_BertWordPieceTokenizer(filelist: List[str], vocab_size=30_000, min_frequency=5, limit_alphabet=500):
+def train_BertWordPieceTokenizer(filelist: List[str], vocab_size=30_000, min_frequency=5, limit_alphabet=500, save: bool=True):
     """
     trin BERT tokenizer from a list of files.
     """
@@ -118,8 +122,10 @@ def train_BertWordPieceTokenizer(filelist: List[str], vocab_size=30_000, min_fre
         min_frequency=min_frequency,
         limit_alphabet=limit_alphabet,
     )
-    tokenizer.save("./BERT_tok-trained.json")
-    tokenizer = Tokenizer.from_file("./BERT_tok-trained.json")
+    
+    if save:
+        tokenizer.save("./BERT_tok-trained.json")
+        tokenizer = Tokenizer.from_file("./BERT_tok-trained.json")
     return tokenizer
 
 def get_vocab_from_tokenizer(tokenizer: Tokenizer):
