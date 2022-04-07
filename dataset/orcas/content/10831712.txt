@@ -1,0 +1,181 @@
+A mathematical symbol is a figure or a combination of figures that is used to represent a mathematical object, an action on mathematical objects, a relation between mathematical objects, or for structuring the other symbols that occur in a formula. As formulas are entirely constituted with symbols of various types, many symbols are needed for expressing all mathematics.
+
+The most basic symbols are the decimal digits (0, 1, 2, 3, 4, 5, 6, 7, 8, 9), and the letters of the Latin alphabet. The decimal digits are used for representing numbers through the Hindu–Arabic numeral system. Historically, upper-case letters were used for representing points in geometry, and lower-case letters were used for variables and constants. Letters are used for representing many other sort of mathematical objects. As the number of these sorts has dramatically increased in modern mathematics, the Greek alphabet and some Hebrew letters are also used. In mathematical formulas, the standard typeface is italic type for Latin letters and lower-case Greek letters, and upright type for upper case Greek letters. For having more symbols, other typefaces are also used, mainly boldface 
+
+
+
+
+a
+,
+A
+,
+b
+,
+B
+
+,
+…
+
+
+{\displaystyle \mathbf {a,A,b,B} ,\ldots }
+
+, script typeface 
+
+
+
+
+
+A
+,
+B
+
+
+,
+…
+
+
+{\displaystyle {\mathcal {A,B}},\ldots }
+
+ (the lower-case script face is rarely used because of the possible confusion with the standard face), German fraktur 
+
+
+
+
+
+a
+,
+A
+,
+b
+,
+B
+
+
+,
+…
+
+
+{\displaystyle {\mathfrak {a,A,b,B}},\ldots }
+
+, and blackboard bold 
+
+
+
+
+
+N
+,
+Z
+,
+Q
+,
+R
+,
+C
+,
+H
+,
+F
+
+
+q
+
+
+
+
+{\displaystyle \mathbb {N,Z,Q,R,C,H,F} _{q}}
+
+ (the other letters are rarely used in this face, or their use is unconventional).
+
+The use of Latin and Greek letters as symbols for denoting mathematical objects is not described in this article. For such uses, see Variable (mathematics) and List of mathematical constants. However, some symbols that are described here have the same shape as the letter from which they are derived, such as 
+
+
+
+
+∏
+
+
+
+
+
+{\displaystyle \textstyle \prod {}}
+
+ and 
+
+
+
+
+∑
+
+
+
+
+
+{\displaystyle \textstyle \sum {}}
+
+.
+
+Theses letters alone are not sufficient for the needs of mathematicians, and many other symbols are used. Some take their origin in punctuation marks and diacritics traditionally used in typography; others by deforming letter forms, as in the cases of 
+
+
+
+∈
+
+
+{\displaystyle \in }
+
+ and 
+
+
+
+∀
+
+
+{\displaystyle \forall }
+
+. Others, such as + and =, were specially designed for mathematics.
+
+Normally, entries of a glossary are structured by topics and sorted alphabetically. This is not possible here, as there is no natural order on symbols, and many symbols are used in different parts of mathematics with different meanings, often completely unrelated. Therefore, some arbitrary choices had to be made, which are summarized below.
+
+The article is split into sections that are sorted by an increasing level of technicality. That is, the first sections contain the symbols that are encountered in most mathematical texts, and that are supposed to be known even by beginners. On the other hand, the last sections contain symbols that are specific to some area of mathematics and are ignored outside these areas. However, the long section on brackets has been placed near to the end, although most of its entries are elementary: this makes it easier to search for a symbol entry by scrolling.
+
+Most symbols have multiple meanings that are generally distinguished either by the area of mathematics where they are used or by their syntax, that is, by their position inside a formula and the nature of the other parts of the formula that are close to them.
+
+As readers may not be aware of the area of mathematics to which is related the symbol that they are looking for, the different meanings of a symbol are grouped in the section corresponding to their most common meaning.
+
+When the meaning depends on the syntax, a symbol may have different entries depending on the syntax. For summarizing the syntax in the entry name, the symbol 
+
+
+
+◻
+
+
+{\displaystyle \Box }
+
+ is used for representing the neighboring parts of a formula that contains the symbol. See § Brackets for examples of use.
+
+Most symbols have two printed versions. They can be displayed as Unicode characters, or in LaTeX format. With the Unicode version, using search engines and copy-pasting are easier. On the other hand, the LaTeX rendering is often much better (more aesthetic), and is generally considered a standard in mathematics. Therefore, in this article, the Unicode version of the symbols is used (when possible) for labelling their entry, and the LaTeX version is used in their description. So, for finding how to type a symbol in LaTeX, it suffices to look at the source of the article.
+
+For most symbols, the entry name is the corresponding Unicode symbol. So, for searching the entry of a symbol, it suffices to type or copy the Unicode symbol into the search textbox. Similarly, when possible, the entry name of a symbol is also an anchor, which allows linking easily from another Wikipedia article. When an entry name contains special characters such as [, ], and |, there is also an anchor, but one has to look at the article source to know it.
+
+Finally, when there is an article on the symbol itself (not its mathematical meaning), it is linked to in the entry name.
+
+Several logical symbols are widely used in all mathematics, and are listed here. For symbols that are used only in mathematical logic, or are rarely used, see List of logic symbols.
+
+The blackboard bold typeface is widely used for denoting the basic number systems. These systems are often also denoted by the corresponding uppercase bold letter. A clear advantage of blackboard bold is that these symbols cannot be confused with anything else. This allows using them in any area of mathematics, without having to recall their definition. For example, if one encounters 
+
+
+
+
+R
+
+
+
+{\displaystyle \mathbb {R} }
+
+ in combinatorics, one should immediately know that this denotes the real numbers, although combinatorics does not study the real numbers (but it uses them for many proofs).
+
+Many sorts of brackets are used in mathematics. Their meanings depend not only on their shapes, but also on the nature and the arrangement of what is delimited by them, and sometimes what appears between or before them. For this reason, in the entry titles, the symbol □ is used for schematizing the syntax that underlies the meaning.
+
+In this section, the symbols that are listed are used as some sorts of punctuation marks in mathematical reasoning, or as abbreviations of English phrases. They are generally not used inside a formula. Some were used in classical logic for indicating the logical dependence between sentences written in plain English. Except for the first two, they are normally not used in printed mathematical texts since, for readability, it is generally recommended to have at least one word between two formulas. However, they are still used on a black board for indicating relationships between formulas.
+

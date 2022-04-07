@@ -1,0 +1,69 @@
+
+
+This is a list of operators in the C and C++ programming languages. All the operators listed exist in C++; the column "Included in C", states whether an operator is also present in C. Note that C does not support operator overloading.
+
+When not overloaded, for the operators &&, ||, and , (the comma operator), there is a sequence point after the evaluation of the first operand.
+
+C++ also contains the type conversion operators const_cast, static_cast, dynamic_cast, and reinterpret_cast. The formatting of these operators means that their precedence level is unimportant.
+
+Most of the operators available in C and C++ are also available in other C-family languages such as C#, D, Java, Perl, and PHP with the same precedence, associativity, and semantics.
+
+For the purposes of these tables, a, b, and c represent valid values (literals, values from variables, or return value), object names, or lvalues, as appropriate. R, S and T stand for any type(s), and K for a class type or enumerated type.
+
+All arithmetic operators exist in C and C++ and can be overloaded in C++.
+
+All comparison operators can be overloaded in C++.
+
+All logical operators exist in C and C++ and can be overloaded in C++, albeit the overloading of the logical AND and logical OR is discouraged, because as overloaded operators they behave as ordinary function calls, which means that both of their operands are evaluated, so they lose their well-used and expected short-circuit evaluation property.[1]
+
+All bitwise operators exist in C and C++ and can be overloaded in C++.
+
+All assignment expressions exist in C and C++ and can be overloaded in C++.
+
+For the given operators the semantic of the built-in combined assignment expression a ⊚= b is equivalent to a = a ⊚ b, except that a is evaluated only once.
+
+Notes:
+
+The following is a table that lists the precedence and associativity of all the operators in the C and C++ languages. Operators are listed top to bottom, in descending precedence. Descending precedence refers to the priority of the grouping of operators and operands. Considering an expression, an operator which is listed on some row will be grouped prior to any operator that is listed on a row further below it. Operators that are in the same cell (there may be several rows of operators listed in a cell) are grouped with the same precedence, in the given direction. An operator's precedence is unaffected by overloading.
+
+The syntax of expressions in C and C++ is specified by a phrase structure grammar.[5] The table given here has been inferred from the grammar.[citation needed] For the ISO C 1999 standard, section 6.5.6 note 71 states that the C grammar provided by the specification defines the precedence of the C operators, and also states that the operator precedence resulting from the grammar closely follows the specification's section ordering:
+
+"The [C] syntax [i.e., grammar] specifies the precedence of operators in the evaluation of an expression, which is the same as the order of the major subclauses of this subclause, highest precedence first."[6]
+
+A precedence table, while mostly adequate, cannot resolve a few details. In particular, note that the ternary operator allows any arbitrary expression as its middle operand, despite being listed as having higher precedence than the assignment and comma operators. Thus a ? b, c : d is interpreted as a ? (b, c) : d, and not as the meaningless (a ? b), (c : d). So, the expression in the middle of the conditional operator (between ? and :) is parsed as if parenthesized. Also, note that the immediate, unparenthesized result of a C cast expression cannot be the operand of sizeof. Therefore, sizeof (int) * x is interpreted as (sizeof(int)) * x and not sizeof ((int) * x).
+
+highest
+
+lowest
+
+[7][8][9]
+
+The precedence table determines the order of binding in chained expressions, when it is not expressly specified by parentheses.
+
+Many of the operators containing multi-character sequences are given "names" built from the operator name of each character. For example, += and -= are often called plus equal(s) and minus equal(s), instead of the more verbose "assignment by addition" and "assignment by subtraction".
+The binding of operators in C and C++ is specified (in the corresponding Standards) by a factored language grammar, rather than a precedence table. This creates some subtle conflicts. For example, in C, the syntax for a conditional expression is:
+
+while in C++ it is:
+
+Hence, the expression:
+
+is parsed differently in the two languages. In C, this expression is a syntax error, because the syntax for an assignment expression in C is:
+
+In C++, it is parsed as:
+
+which is a valid expression.[10][11]
+
+
+If you want to use comma-as-operator within a single function argument, variable assignment, or other comma-separated list, you need to use parentheses,[12][13] e.g.: 
+The precedence of the bitwise logical operators has been criticized.[14] Conceptually, & and | are arithmetic operators like * and +.
+
+The expression a & b == 7 is syntactically parsed as a & (b == 7) whereas the expression a + b == 7 is parsed as (a + b) == 7. This requires parentheses to be used more often than they otherwise would.
+
+Historically, there was no syntactic distinction between the bitwise and logical operators. In BCPL, B and early C, the operators && || didn't exist. Instead & | had different meaning depending on whether they are used in a 'truth-value context' (i.e. when a Boolean value was expected, for example in if (a==b & c) {...} it behaved as a logical operator, but in c = a & b it behaved as a bitwise one). It was retained so as to keep backward compatibility with existing installations.[15]
+
+Moreover, in C++ (and later versions of C) equality operations, with the exception of the three-way comparison operator, yield bool type values which are conceptually a single bit (1 or 0) and as such do not properly belong in "bitwise" operations.
+
+C++ defines[16] certain keywords to act as aliases for a number of operators:
+
+These can be used exactly the same way as the punctuation symbols they replace, as they are not the same operator under a different name, but rather simple token replacements for the name (character string) of the respective operator. This means that the expressions (a > 0 and not flag) and (a > 0 && !flag) have identical meanings. It also means that, for example, the bitand keyword may be used to replace not only the bitwise-and operator but also the address-of operator, and it can even be used to specify reference types (e.g., int bitand ref = n). The ISO C specification makes allowance for these keywords as preprocessor macros in the header file iso646.h. For compatibility with C, C++ provides the header ciso646, the inclusion of which has no effect.
+

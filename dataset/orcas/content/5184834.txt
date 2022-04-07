@@ -1,0 +1,72 @@
+
+Jump to a Section
+
+BIOS, which stands for Basic Input Output System, is software stored on a small memory chip on the motherboard. It's BIOS that's responsible for the POST and therefore makes it the very first software to run when a computer is started.
+
+
+The BIOS firmware is non-volatile, meaning that its settings are saved and recoverable even after power has been removed from the device.
+
+BIOS is pronounced as by-oss and is sometimes referred to as the System BIOS, ROM BIOS, or PC BIOS. However, it's also incorrectly referred to as the Basic Integrated Operating System or Built-In Operating System.
+
+BIOS instructs the computer on how to perform basic functions such as booting and keyboard control.
+
+
+BIOS is also used to identify and configure the hardware in a computer such as the hard drive, floppy drive, optical drive, CPU, memory, and related equipment.
+
+
+The BIOS is accessed and configured through the BIOS Setup Utility. The BIOS Setup Utility is, for all practical purposes, the BIOS itself. All available options in BIOS are configurable through the BIOS Setup Utility.
+
+
+Unlike an operating system like Windows, which is often downloaded or obtained on a disc and needs to be installed by the user or manufacturer, BIOS comes installed from the moment the machine is manufactured.
+
+
+The BIOS Setup Utility is accessed in various ways depending on your computer or motherboard make and model.
+
+
+All modern computer motherboards contain BIOS software.
+
+
+BIOS access and configuration on PC systems are independent of any operating system because the BIOS is part of the motherboard hardware. It doesn't matter if a computer is running Windows 10, Windows 8, Windows 7, Windows Vista, Windows XP, Linux, Unix, or no operating system at all—BIOS functions outside of the operating system environment and is no way dependent upon it.
+
+
+The following are some of the more popular BIOS vendors:
+
+Award Software, General Software, and Microid Research were BIOS manufacturers acquired by Phoenix Technologies.
+
+BIOS supports several hardware configuration options that can be changed through the setup utility. Saving these changes and restarting the computer applies the changes to the BIOS and alters the way BIOS instructs the hardware to function.
+
+
+Here are some common things you can do in most BIOS systems:
+
+
+Before updating BIOS, check what version is currently running on your computer.
+
+
+When configuring updates, verify that you've downloaded the right file for your motherboard and that the computer not be shut down partway through or the update canceled abruptly. Interruptions could brick the motherboard and render the computer unusable, making it difficult to regain functionality.
+
+
+One way to avoid this problem is to use what's called a "boot lock" section of the BIOS software which gets updated on its own apart from the rest so that if corruption ensues, a recovery process prevents damage.
+
+
+BIOS might check if the full update has been applied by verifying that the checksum matches up with the intended value. If it doesn't, and the motherboard supports DualBIOS, that BIOS backup can be restored to overwrite the corrupted version.
+
+
+The BIOS in some of the first IBM computers were not interactive like modern-day implementations but instead only served to display error messages or beeps codes. Any custom options were instead made by modifying physical switches and jumpers.
+
+
+It wasn't until the 1990s that the BIOS Setup Utility (also known as the BIOS Configuration Utility, or BCU) became common practice.
+
+
+However, nowadays, BIOS has slowly been being replaced by UEFI (Unified Extensible Firmware Interface) in newer computers, which offers benefits like a better user interface and a built-in, pre-OS platform for accessing the web.
+
+Updating the BIOS can be a good thing when your PC manufacturer is offering a BIOS update with improvements, security patches, bug fixes, and new hardware support. If something goes wrong during the updating process, however, there may be irreparable harm. BIOS updates don't usually offer any major speed boosts or new features, so if it's not a necessary update, it may be best to leave things along.
+A BIOS password is an optional additional level of authentication protection. Through the BIOS Setup Utility, you can set up a Setup Password, which will require a password when a user is trying to access the BIOS Setup Utility, and a System Password, which will be required before the system can boot up. BIOS passwords are different from Windows account passwords.
+A PS2 BIOS file is a way to play classic PlayStation 2 games on your Windows PC. To accomplish this, you'll also need to download a PS2 emulator and game ROMs. Some PS2 emulators include a PS2 BIOS file, which makes the process easier. Always download PS2 emulators, BIOS files, and game ROMs from trustworthy sources.
+In the Task Manager, under the Startup tab, you'll see Last BIOS Time and a number of seconds. This refers to how long it takes to go from starting up your computer to seeing the Windows logo on the screen. Anywhere from five to 15 seconds is a normal Last BIOS time. There are things you can do to speed up your Last BIOS time, such as setting your OS as the first boot drive and enabling Fast Boot.
+There was an error. Please try again.
+Thank you  for signing up!
+There was an error. Please try again.
+Thank you  for signing up!
+Actively scan device characteristics for identification. Use precise geolocation data. Store and/or access information on a device. Select personalised content. Create a personalised content profile. Measure ad performance. Select basic ads. Create a personalised ads profile. Select personalised ads. Apply market research to generate audience insights. Measure content performance. Develop and improve products.
+List of Partners (vendors)
+

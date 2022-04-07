@@ -1,0 +1,24 @@
+Find centralized, trusted content and collaborate around the technologies you use most.
+Teams
+Q&A for work
+Connect and share knowledge within a single location that is structured and easy to search.
+I was trying to understand how to use the WITH clause and the purpose of the WITH clause.
+All I understood was, the WITH clause was a replacement for normal sub-queries.
+Can anyone explain this to me with a small example in detail ?
+The SQL WITH clause was introduced by Oracle in the Oracle 9i release 2 database. The SQL WITH clause allows you to give a sub-query block a name (a process also called sub-query refactoring), which can be referenced in several places within the main SQL query. The name assigned to the sub-query is treated as though it was an inline view or table. The SQL WITH clause is basically a drop-in replacement to the normal sub-query.
+Syntax For The SQL WITH Clause
+The following is the syntax of the SQL WITH clause when using a single sub-query alias.
+When using multiple sub-query aliases, the syntax is as follows.
+In the syntax documentation above, the occurrences of alias_name is a meaningful name you would give to the sub-query after the AS clause. Each sub-query should be separated with a comma Example for WITH statement. The rest of the queries follow the standard formats for simple and complex SQL SELECT queries.
+For more information: http://www.brighthub.com/internet/web-development/articles/91893.aspx
+This has been fully answered here. 
+See Oracle's docs on SELECT to see how subquery factoring works, and Mark's example:
+
+Site design / logo © 2022 Stack Exchange Inc; user contributions licensed under cc by-sa.                    rev 2022.4.5.41860
+
+
+                        Your privacy
+                    
+
+                        By clicking “Accept all cookies”, you agree Stack Exchange can store cookies on your device and disclose information in accordance with our Cookie Policy.
+                    
