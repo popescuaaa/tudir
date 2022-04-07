@@ -115,6 +115,7 @@ def train_BertWordPieceTokenizer(filelist: List[str], vocab_size=30_000, min_fre
         train_it = filelist
 
     tokenizer = BertWordPieceTokenizer()
+    tokenizer.normalizer = tokenizers.normalizers.BertNormalizer(strip_accents=True, lowercase=True)
     tokenizer.train_from_iterator(
         train_it,
         vocab_size=vocab_size,

@@ -4,7 +4,7 @@ import os
 
 import numpy as np
 sys.path.append(os.getcwd())
-from typing import Dict, Iterable, List, Union
+from typing import Dict, Iterable, List, Set, Union
 from tqdm import tqdm
 from tokenization.corpus_tokenizers import HuggingFaceCorpusTokenizer, WhiteSpaceCorpusTokenizer
 from tokenization.vocab_tokenizers import train_BertWordPieceTokenizer
@@ -68,12 +68,12 @@ class SparseTFidfVectorizer:
         tfidf_vectorizer.fit(corpus)
         return tfidf_vectorizer
 
-def top_k_tfidf_summary(text: Union[str, List[str]], vectorizer: SparseTFidfVectorizer, k: int) -> List[List[str]]:
+def top_k_tfidf(text: Union[str, List[str]], vectorizer: SparseTFidfVectorizer, k: int) -> Union[Dict[str, float], List[Dict[str, float]]]:
     """Function that computes the top k tfidf scores for a list of scores"""
-    is_array = False
+    is_array = True
     if isinstance(text, str):
         text = [text]
-        is_array = True
+        is_array = False
     
     # get tfidf feature names
     tfidf_scores = vectorizer.get_scores(text)
@@ -88,37 +88,70 @@ def top_k_tfidf_summary(text: Union[str, List[str]], vectorizer: SparseTFidfVect
         # select top k scores
         token_scores = {k: v for k, v in sorted(token_scores, key=lambda x: x[1], reverse=True)[:k]}
         top_scores.append(token_scores)
+    
+    if not is_array:
+        top_scores = top_scores[0]
+    return top_scores
+
+def top_k_tfidf_summary(text: Union[str, List[str]], vectorizer: SparseTFidfVectorizer, k: int) -> List[List[str]]:
+    """Function that computes the top k tfidf scores for a list of scores"""
+    is_array = True
+    if isinstance(text, str):
+        text = [text]
+        is_array = False
+    
+    # get tfidf feature names
+    top_tfidf_scores = top_k_tfidf(text, vectorizer, k)
 
     text_summaries = []
-    for i in range(len(text)):
-        summary = []
-        # split text into tokens
-        for word in text.strip('\n').split(' '):
+    for i, subtext in enumerate(text):
+        summary = {}
+        for word in subtext.split(' '):
             # if word is in top k scores
-            if any([k in word.lower() for k in top_scores[i].keys()]):
-                summary.append(word)
-        text_summaries.append(summary)
+            if any([k in word.lower() for k in top_tfidf_scores[i].keys()]):
+                if word not in summary:
+                    summary[word] = len(summary)
+        # sort the summary
+        summary = {k: v for k, v in sorted(summary.items(), key=lambda x: x[1])}
+        text_summaries.append(list(summary.keys()))
 
     if not is_array:
         text_summaries = text_summaries[0]
     return text_summaries
+
+def mutual_set_similarity(set_a: Set[str], set_b: Set[str]) -> float:
+    """Function that computes the similarity between two sets"""
+    return len(set_a.intersection(set_b)) / len(set_a.union(set_b))
+    
     
 
 if __name__ == '__main__':
     # create corpus
     queries, documents = squad_query_document_list()
     corpus = squad_corpus(documents, queries)
-    tokenizer = train_BertWordPieceTokenizer(corpus, vocab_size=30_000)
-    print(len(list(tokenizer.get_vocab().keys())))
+    tokenizer = train_BertWordPieceTokenizer(corpus, vocab_size=60_000)
     # flatten list of queries
     queries = [item for sublist in queries for item in sublist]
     corpus_tokenizer = HuggingFaceCorpusTokenizer(tokenizer)
     query_tokens = corpus_tokenizer.tokenize_corpus(queries, join_delimiter=' ')
     query_vectorizer = SparseTFidfVectorizer(query_tokens, vocabulary=tokenizer.get_vocab(), chunk_size=100)
-    query_summaries = top_k_tfidf_summary(queries, query_vectorizer, 10)
+    query_summaries = top_k_tfidf_summary(query_tokens[:200], query_vectorizer, 8)
     
-    for i in range(10):
-        print(query_summaries[i])
+
+    similarities = {}
+    for i in range(100):
+        for j in range(i, 100):
+            if i != j:
+                similarities[(i, j)] = mutual_set_similarity(set(query_summaries[i]), set(query_summaries[j]))
+    
+    # sort similarities
+    sorted_similarities = sorted(similarities.items(), key=lambda x: x[1], reverse=True)
+    
+    for (i, j), similarity in sorted_similarities[:50]:
+        print(f'Mutual set similarity: {similarity} for ({i} and query {j})')
+        print(f'TF-IDF summary: {query_summaries[i]} QUERY: {queries[i]}')
+        print(f'TF-IDF summary: {query_summaries[j]} QUERY: {queries[j]}')
+        print()
     
 
     
