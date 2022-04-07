@@ -1,6 +1,8 @@
 from typing import List, Union
 from tokenizers import Tokenizer
 
+SPL_TOKENS = ["<UNK>", "<SEP>", "<MASK>", "<CLS>", "<PAD>", "<EOS>", "<SOS>"]
+
 class CorpusTokenizer:
     def __init__(
         self
@@ -75,6 +77,9 @@ class HuggingFaceCorpusTokenizer(CorpusTokenizer):
         """
         token_corpus = self.tokenizer.encode_batch(corpus)
         token_corpus = [c.tokens for c in token_corpus]
+        # clean up special tokens
+        for i, tokens in enumerate(token_corpus):
+            token_corpus[i] = [t for t in tokens if t not in SPL_TOKENS]
 
         if join_delimiter:
             token_corpus = [join_delimiter.join(tokens) for tokens in token_corpus]

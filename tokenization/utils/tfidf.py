@@ -6,16 +6,16 @@ import numpy as np
 sys.path.append(os.getcwd())
 from typing import Dict, Iterable, List, Union
 from tqdm import tqdm
-from tokenization.corpus_tokenizers import WhiteSpaceCorpusTokenizer
-
+from tokenization.corpus_tokenizers import HuggingFaceCorpusTokenizer, WhiteSpaceCorpusTokenizer
+from tokenization.vocab_tokenizers import train_BertWordPieceTokenizer
 from scipy import sparse
 from sklearn.feature_extraction.text import TfidfVectorizer
 from dataset.squad.iterators import create_corpus_from_document_query_lists as squad_corpus
 from dataset.squad.iterators import create_query_document_lists_squad as squad_query_document_list
 
 class SparseTFidfVectorizer:
-    def __init__(self, corpus: List[str], chunk_size: int = 10000) -> None:
-        self.vectorizer = SparseTFidfVectorizer.get_tfidf_vectorizer(corpus)
+    def __init__(self, corpus: List[str], vocabulary: Dict = None, chunk_size: int = 10000) -> None:
+        self.vectorizer = SparseTFidfVectorizer.get_tfidf_vectorizer(corpus, vocabulary)
         feature_names = self.vectorizer.get_feature_names_out()
         self.feature_indices = {i: feature_names[i] for i in range(len(feature_names))}
         self.chunk_size = chunk_size
@@ -31,8 +31,6 @@ class SparseTFidfVectorizer:
         try:
             for i in tqdm(range(0, len(text), self.chunk_size), total=math.ceil(len(text) // self.chunk_size)):
                 chunk_scores = self.vectorizer.transform(text[i:i+self.chunk_size]).toarray()
-                # convert np.array to sparse vector 
-                # chunk_scores = sparse.csr_matrix(chunk_scores)
                 scores.append(chunk_scores)
         except np.core._exceptions._ArrayMemoryError:
             print('Error: Memory error. Please try modifying the chunk size.')
@@ -40,14 +38,14 @@ class SparseTFidfVectorizer:
 
         try: 
             indexed_scores = []
-            print('Converting to sparse vector...')
-            for s in tqdm(scores, total=len(scores)):
-                s = sparse.coo_matrix(s)
-                print('Compressing sparse matrix...')
-                for idx in tqdm(range(s.shape[0]), total=s.shape[0]):
+            print('Compressing sparse matrices...')
+            for score_ndarray in tqdm(scores, total=len(scores)):
+                score_sparse_array   = sparse.coo_matrix(score_ndarray)
+                score_sparse_n_rows  = score_sparse_array.shape[0]
+                for idx in range(score_sparse_n_rows):
                     sparse_scores = {
                         self.feature_indices[i]: v for i, v in 
-                        zip(s.getrow(idx).indices, s.getrow(idx).data)
+                        zip(score_sparse_array.getrow(idx).indices, score_sparse_array.getrow(idx).data)
                     }
                     indexed_scores.append(sparse_scores)
         except np.core._exceptions._ArrayMemoryError:
@@ -59,14 +57,14 @@ class SparseTFidfVectorizer:
         return indexed_scores
 
     @classmethod
-    def get_tfidf_vectorizer(cls, corpus: List[str]) -> TfidfVectorizer:
+    def get_tfidf_vectorizer(cls, corpus: List[str], vocabulary: Dict) -> TfidfVectorizer:
         """Function that computes a tfidf vectorizer for a corpus"""
         if os.path.isfile(corpus[0]):
             input_params = {'input': 'filename'}
         else:
             input_params = {'input': 'content'}
 
-        tfidf_vectorizer = TfidfVectorizer(input=input_params['input'], ngram_range=(1, 2))    
+        tfidf_vectorizer = TfidfVectorizer(input=input_params['input'], vocabulary=vocabulary, ngram_range=(1, 2))    
         tfidf_vectorizer.fit(corpus)
         return tfidf_vectorizer
 
@@ -109,11 +107,14 @@ def top_k_tfidf_summary(text: Union[str, List[str]], vectorizer: SparseTFidfVect
 if __name__ == '__main__':
     # create corpus
     queries, documents = squad_query_document_list()
+    corpus = squad_corpus(documents, queries)
+    tokenizer = train_BertWordPieceTokenizer(corpus, vocab_size=30_000)
+    print(len(list(tokenizer.get_vocab().keys())))
     # flatten list of queries
     queries = [item for sublist in queries for item in sublist]
-    tokenizer = WhiteSpaceCorpusTokenizer()
-    query_tokens = tokenizer.tokenize_corpus(queries, join_delimiter=' ')
-    query_vectorizer = SparseTFidfVectorizer(query_tokens)
+    corpus_tokenizer = HuggingFaceCorpusTokenizer(tokenizer)
+    query_tokens = corpus_tokenizer.tokenize_corpus(queries, join_delimiter=' ')
+    query_vectorizer = SparseTFidfVectorizer(query_tokens, vocabulary=tokenizer.get_vocab(), chunk_size=100)
     query_summaries = top_k_tfidf_summary(queries, query_vectorizer, 10)
     
     for i in range(10):
