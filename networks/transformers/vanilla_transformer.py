@@ -1,9 +1,10 @@
-from typing import Optional, OrderedDict, Tuple
+from typing import Callable, Optional, OrderedDict, Tuple
 from pyparsing import Opt
 import torch
 from torchvision.ops.stochastic_depth import StochasticDepth
 from torch import nn
 from torch import Tensor
+from torch.nn import functional as F
 
 def probability_string(probability: float) -> str:
     """
@@ -19,12 +20,14 @@ class TransformerBlockConfig:
         num_layers: int,
         num_heads: int,
         dropout: float,
+        activation: Callable[[Tensor], Tensor],
     ) -> None:
         self.embedding_dim = embedding_dim
         self.hidden_dim = hidden_dim
         self.num_layers = num_layers
         self.num_heads = num_heads
         self.dropout = dropout
+        self.activation = activation
 
         # generate stochastic depth ranges
         stochastic_depth_range = range(1, num_layers + 1)
@@ -39,6 +42,7 @@ DefaultTransformerConfig = TransformerBlockConfig(
     num_layers=12,
     num_heads=16,
     dropout=0.1,
+    activation=F.gelu,
 )
 
 class SimpleTransformerBlocks(nn.Module):
@@ -59,6 +63,7 @@ class SimpleTransformerBlocks(nn.Module):
                     nhead=config.num_heads,
                     dim_feedforward=config.hidden_dim,
                     dropout=config.dropout,
+                    activation=config.activation,
                     batch_first=True,
                     norm_first=False,)
             ),
