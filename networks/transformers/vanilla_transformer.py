@@ -101,10 +101,3 @@ class SimpleTransformerBlocks(nn.Module):
             else:
                 x = layer(x)
         return x
-
-
-
-
-
-
-        
