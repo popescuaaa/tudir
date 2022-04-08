@@ -52,15 +52,20 @@ class SimpleTransformerBlocks(nn.Module):
         
         # set transformer encoder layers followed by stochastic depth
         modules = [[
-            (f'Encoder Layer {i+1:02}', nn.TransformerEncoderLayer(
-                d_model=config.embedding_dim,
-                nhead=config.num_heads,
-                dim_feedforward=config.hidden_dim,
-                dropout=config.dropout,
-                batch_first=True,
-                norm_first=False,
-            )),
-            (f'StochasticDepth {i+1:02} prob:{probability_string(config.stochastic_depth_range_prob[i])}', StochasticDepth(p=config.stochastic_depth_range_prob[i], mode="row")),
+            (
+                f'Encoder Layer {i+1:02}',
+                nn.TransformerEncoderLayer(
+                    d_model=config.embedding_dim,
+                    nhead=config.num_heads,
+                    dim_feedforward=config.hidden_dim,
+                    dropout=config.dropout,
+                    batch_first=True,
+                    norm_first=False,)
+            ),
+            (
+                f'StochasticDepth {i+1:02} prob:{probability_string(config.stochastic_depth_range_prob[i])}',
+                 StochasticDepth(p=config.stochastic_depth_range_prob[i], mode="row")
+            ),
         ] for i in range(config.num_layers)]
 
         # flatten module list
