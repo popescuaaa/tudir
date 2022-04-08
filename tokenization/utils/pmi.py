@@ -1,6 +1,9 @@
+import itertools
 import sys
 import os
 sys.path.append(os.getcwd())
+
+from tokenization.vocab_tokenizers import train_BertWordPieceTokenizer
 from dataset.squad.iterators import create_corpus_from_document_query_lists as squad_corpus
 from dataset.squad.iterators import create_query_document_lists_squad as squad_query_document_list
 
@@ -8,7 +11,7 @@ from collections import defaultdict
 from typing import Callable, Dict, List, Tuple
 from plot import plot_distribution, plot_cummulative_dsitribution
 import numpy as np
-from tokenization.corpus_tokenizers import CorpusTokenizer, WhiteSpaceCorpusTokenizer
+from tokenization.corpus_tokenizers import CorpusTokenizer, HuggingFaceCorpusTokenizer, WhiteSpaceCorpusTokenizer
 from tqdm import tqdm
 import math
 
@@ -52,6 +55,48 @@ def compute_corpus_pmis(corpus: List[str], corpus_tokenizer: CorpusTokenizer) ->
         pmi_scores[(token_a, token_b)] = math.log(bigram_prob / (token_a_prob * token_b_prob / squared_token_counts))
 
     return pmi_scores
+
+def compute_corpus_set_pmis(corpus: List[str], corpus_tokenizer: CorpusTokenizer) -> Dict[Tuple[str, str], float]:
+    """
+    Compute PMI scores for corpus with a twist. Instead of computing PMI using a bigram, it computes PMI using any 2-token set from the sequence.
+    """
+    new_corpus = corpus_tokenizer.tokenize_corpus(corpus)
+
+    bigram_count: Dict[Tuple[str, str], int] = defaultdict(int)
+    token_count:  Dict[str, int]  = defaultdict(int)
+
+    # if using zip, need to do go line by line
+    for line_token_list in tqdm(new_corpus, total=len(new_corpus)):
+        combination_tokkens = set()
+        for token_a, token_b in zip(line_token_list, line_token_list[1:]):
+            token_count[token_a] += 1
+            token_count[token_b] += 1
+            # add permutable tokens to set
+            combination_tokkens.add(token_a)
+            combination_tokkens.add(token_b)
+        # generate all 2-token sets
+        combinations = itertools.combinations(combination_tokkens, 2)
+        for combination in combinations:
+            bigram_count[combination] += 1
+
+    # sum up the bigram counts and token counts
+    total_token_counts = sum(token_count.values())
+    total_bigram_counts = sum(bigram_count.values())
+    squared_token_counts = total_token_counts ** 2
+
+    pmi_scores = {}
+
+    # compute pmi scores
+    for (token_a, token_b), count in bigram_count.items():
+        # normalize counts into probabilities
+        bigram_prob = count / total_bigram_counts
+        token_a_prob = token_count[token_a] 
+        token_b_prob = token_count[token_b]
+        # set PMI for bigram
+        pmi_scores[(token_a, token_b)] = math.log(bigram_prob / (token_a_prob * token_b_prob / squared_token_counts))
+
+    return pmi_scores
+
 
 def compute_pmi_distribution(pmi_scores: Dict[Tuple[str, str], float]) -> Dict[float, float]:
     """Function that computer the probability distribution for each PMI score"""
@@ -106,11 +151,10 @@ if __name__ == '__main__':
     queries, documents = squad_query_document_list()
     corpus = squad_corpus(documents, queries)
     # create tokenizer
-    tokenizer = WhiteSpaceCorpusTokenizer()
-    # compute corpus tokens
-    corpus_tokens = tokenizer.tokenize_corpus(corpus)
+    tokenizer = train_BertWordPieceTokenizer(corpus, vocab_size=30_000)
+    corpus_tokenizer = HuggingFaceCorpusTokenizer(tokenizer)
     # compute pmi scores
-    pmi_scores = compute_corpus_pmis(corpus, tokenizer)
+    pmi_scores = compute_corpus_set_pmis(corpus, corpus_tokenizer)
     # compute probability distribution
     probability_distribution = compute_pmi_distribution(pmi_scores)
     # bin distribution

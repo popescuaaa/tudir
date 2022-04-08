@@ -93,6 +93,27 @@ def top_k_tfidf(text: Union[str, List[str]], vectorizer: SparseTFidfVectorizer, 
         top_scores = top_scores[0]
     return top_scores
 
+def rank_words_tfidf(text: Union[str, List[str]], vectorizer: SparseTFidfVectorizer) -> Union[Dict[str, float], List[Dict[str, float]]]:
+    """Function that ranks words in a text based on their tfidf scores"""
+    is_array = True
+    if isinstance(text, str):
+        text = [text]
+        is_array = False
+    
+
+    for i in tqdm(range(len(text)), total=len(text)):
+        # get word name and score
+        tfidf_scores = top_k_tfidf_summary(text[i], vectorizer, k=len(text[i]))
+        token_names, token_tfidf = list(tfidf_scores.keys()), list(tfidf_scores.values())
+        token_scores = list(zip(token_names, token_tfidf))
+        # rank words
+        token_scores = {k: v for k, v in sorted(token_scores, key=lambda x: x[1], reverse=True)}
+        ranked_words.append(token_scores)
+    
+    if not is_array:
+        ranked_words = ranked_words[0]
+    return ranked_words
+
 def top_k_tfidf_summary(text: Union[str, List[str]], vectorizer: SparseTFidfVectorizer, k: int) -> List[List[str]]:
     """Function that computes the top k tfidf scores for a list of scores"""
     is_array = True
