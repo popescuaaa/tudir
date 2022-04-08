@@ -3,7 +3,7 @@ from task_head import TaskHead
 from task_head import TaskConfig
 
 
-class MLM_head(TaskHead):
+class SOP_head(TaskHead):
     """
     Masked Language Modeling head.    
     """
@@ -17,4 +17,4 @@ class MLM_head(TaskHead):
         pass
 
 sop_config = TaskConfig("mlm", input_dim=768, output_dim=768)
-sop_head = MLM_head(sop_config)
+sop_head = SOP_head(sop_config)
