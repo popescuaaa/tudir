@@ -1,6 +1,6 @@
 import os
 import sys
-from typing import Tuple
+from typing import Optional, Tuple, Union
 sys.path.append(os.getcwd())
 
 import torch
@@ -27,7 +27,7 @@ class TaskHead(nn.Module):
         super().__init__()
         self.config = config
         
-    def forward(self, inputs: Tensor) -> Tuple[Tensor, Tensor]:
+    def forward(self, inputs: Tensor, targets: Optional[Tensor] = None) -> Union[Tensor, Tuple[Tensor, Tensor]]:
         """Function that runs inputs through the task heads and computes the output."""
         raise NotImplementedError()
 
