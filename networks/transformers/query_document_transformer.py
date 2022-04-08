@@ -33,9 +33,10 @@ class QueryDocumentTransformer:
 
 
         # setup embedding tables
-        self.embeddings = nn.ModuleDict({
-            "query": nn.Embedding(self.vocab_size, self.transformer_config.embedding_dim),
-            "document": nn.Embedding(self.vocab_size, self.transformer_config.embedding_dim),
+        self.embedding = nn.Embedding(self.vocab_size, self.transformer_config.embedding_dim)
+        self.embedding_projections = nn.ModuleDict({
+            "query": nn.Linear(self.transformer_config.embedding_dim, self.transformer_config.embedding_dim, bias=False),
+            "document": nn.Linear(self.transformer_config.embedding_dim, self.transformer_config.embedding_dim, bias=False),
         })
 
         # setup transformer blocks and heads
@@ -50,18 +51,31 @@ class QueryDocumentTransformer:
         x: (batch_size, seq_len)
         task: str - the task name to be performed
         """
+        # [b, b, b, b] -> [4b]
+        # {'MLM': querry, 'NSP': document}
         # select task domain
         task_domain = self.input_domains[task]
+        x, y = self.heads[task].prepare_input(x)
         
+        x = self.embedding(x) 
+
         # embed input
-        x = self.embeddings[task_domain](x)
+        x = self.embedding_projections[task_domain](x)
 
         # apply transformer blocks
         x = self.transformer_blocks(x)
 
         # apply heads
-        x = self.heads[task](x)
+        task_outs, task_loss = self.heads[task](x, y)
 
-        return x
+        return task_outs, task_loss
+
+    """
+    queries
+    (_, mlm_loss), (_, q_contrastive_loss) = self.forward(queries, "MLM"), self.forward(queries, "QC")
+    (_, sop_loss), (_, d_contrastive_loss) = self.forward(queries, "SOP"), self.forward(queries, "DC")
+    loss = mlm_loss + q_contrastive_loss + sop_loss + d_contrastive_loss
+    loss.backward()
+    """
 
         

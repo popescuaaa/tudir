@@ -155,6 +155,12 @@ if __name__ == '__main__':
     corpus_tokenizer = HuggingFaceCorpusTokenizer(tokenizer)
     # compute pmi scores
     pmi_scores = compute_corpus_set_pmis(corpus, corpus_tokenizer)
+    # sort scores by value
+    sorted_pmi = sorted(pmi_scores.items(), key=lambda x: x[1], reverse=True)
+    # return top 10 scores
+    print(sorted_pmi[:50])
+    print(pmi_scores)
+    exit(0)
     # compute probability distribution
     probability_distribution = compute_pmi_distribution(pmi_scores)
     # bin distribution
