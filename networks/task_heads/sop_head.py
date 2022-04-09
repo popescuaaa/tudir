@@ -16,5 +16,5 @@ class SOP_head(TaskHead):
     def prepare_inputs(self, inputs, **kwargs):
         pass
 
-sop_config = TaskConfig("mlm", input_dim=768, output_dim=768)
+sop_config = TaskConfig("sop", input_dim=768, output_dim=768)
 sop_head = SOP_head(sop_config)
