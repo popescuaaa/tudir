@@ -1,58 +1,69 @@
+import enum
 import os
 import sys
+import token
+from matplotlib.transforms import Transform
 import torch
 import transformers
-# sys.path.append(os.getcwd())
+sys.path.append(os.getcwd())
 sys.path.append(os.path.abspath(os.path.join('..')))
 
-print(os.getcwd())
-
 from tokenizers import Tokenizer
-from task_heads.mlm_head import MLM_Config, MLM_head
+from torch.utils.data import DataLoader
+from torch.nn import functional as F
 
-""" Notes:
-    text = "Beyonce, was she born in 1981?"
-    use Tokenizer
-    tokens = ["Beyonce", ",", "was", "she", "born", "in", "1981", "?"]
-    check fw pass of the mlm head
-"""
+from task_heads.mlm_head import MLM_Config, MLM_head
+from networks.transformers.query_document_transformer import QueryDocumentTransformer
+from networks.transformers.vanilla_transformer import SimpleTransformerBlocks, TransformerBlockConfig
+
 
 def test_mlm_head_forward(queries_dataloader, tokenizer):
     """
     Test forward pass for the MLM head.
     """
 
-    # mlm_config = MLM_Config("mlm", input_dim=768, output_dim=768)
-    # mlm_head = MLM_head(mlm_config)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    # for batch_queries in enumerate(queries_dataloader):
-    #     batch_queries = tokenizer.batch_encode_plus(batch_queries)
+    transformer_config = TransformerBlockConfig(embedding_dim=768,
+                                                hidden_dim=768,
+                                                num_layers=4,
+                                                num_heads=4,
+                                                dropout=0.1,
+                                                attention_dropout=0.1,
+                                                activation=F.gelu,
+                                                stochastic_depth=False
+                                                )
+    transformer = SimpleTransformerBlocks(transformer_config, vocab_size=tokenizer.get_vocab_size())
 
-    #     batch_inputs = batch_inputs.to(device)
-    #     batch_targets = batch_targets.to(device)
+    mlm_config = MLM_Config("mlm", input_dim=768, output_dim=768)
+    mlm_head = MLM_head(mlm_config)
 
-    #     batch_inputs, batch_targets = mlm_head.prepare_inputs(batch_inputs, **kwargs)
+    # data size = [num_batches, batch_size, seq_len, embedding_dim]
+    queries_dataloader = torch.randint(0, 20000, (2, 8, 1024)).cuda()
 
-    #     mlm_outputs, mlm_loss = mlm_head(batch_inputs, batch_targets)
+    for batch_queries in enumerate(queries_dataloader):
 
-    #     assert mlm_outputs.size() == batch_targets.size()
-    #     assert mlm_loss.size() == torch.Size([])
+        '''
+        batch_encode_plus generate a dict of:
+        {
+            'input_ids': [batch_size, seq_len],
+            'attention_mask': [batch_size, seq_len],
+            'token_type_ids': [batch_size, seq_len],
+        }
+        '''
+        batch_queries = tokenizer.batch_encode_plus(batch_queries)
+
+        batch_inputs = batch_queries.to(device)
+
+        mlm_hidden_size = transformer(batch_inputs)
+
+        mlm_outputs, mlm_loss = mlm_head(mlm_hidden_size, targets=batch_targets)
+
+        assert mlm_outputs.size() == batch_targets.size()
+        assert mlm_loss.size() == torch.Size([])
 
     
     return None
 
-tokenizer = Tokenizer.from_file("./BERT_tok-trained.json")
 
-'''
-for batch_queries in enumerate(queries_dataloader):
-    # TODO: batch_encode_plus - get the attention mask from dict output
-    batch_queries = Tokenizer.batch_encode(batch_queries, max_length=max_query_length).ids
-
-    batch_queries = torch.tensor(batch_queries, dtype=torch.long)
-    batch_queries = batch_queries.to(device)
-    mlm_inputs, mlm_targets = mlm_head.prepare_inputs(batch_queries)
-    
-    mlm_hidden_states = Transformer(mlm_inputs, attention_mask=None, padding ...)
-
-    mlm_outputs, mlm_loss = mlm_head(mlm_hidden_states, mlm_targets)
-'''
+################ This should be the test code ################
