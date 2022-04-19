@@ -1,7 +1,13 @@
+import os
+import sys
 from typing import Dict, List, Tuple
 import torch
 from torch import Tensor, nn
 from torch.nn import functional as F
+
+sys.path.append(os.getcwd())
+from dataset.msmarco_orcas.loader import QueryDocumentOrcasDataset
+
 
 class QueryDocumentTransformer:
     def __init__(
@@ -69,13 +75,3 @@ class QueryDocumentTransformer:
         task_outs, task_loss = self.heads[task](x, y)
 
         return task_outs, task_loss
-
-    """
-    queries
-    (_, mlm_loss), (_, q_contrastive_loss) = self.forward(queries, "MLM"), self.forward(queries, "QC")
-    (_, sop_loss), (_, d_contrastive_loss) = self.forward(queries, "SOP"), self.forward(queries, "DC")
-    loss = mlm_loss + q_contrastive_loss + sop_loss + d_contrastive_loss
-    loss.backward()
-    """
-
-        

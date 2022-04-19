@@ -95,9 +95,26 @@ class SimpleTransformerBlocks(nn.Module):
 
     def forward(self, x: Tensor, src_mask: Optional[Tensor] = None, src_key_padding_mask: Optional[Tensor] = None) -> Tensor:
         for name, layer in self.blocks.named_children():
-            print(name)
             if name.startswith('Encoder'):
                 x = layer(x, src_mask=src_mask, src_key_padding_mask=src_key_padding_mask)
             else:
                 x = layer(x)
         return x
+
+def generate_random_seq_ids(batch_size: int, seq_len: int):
+    """
+    Generates random sequence ids for a batch of size batch_size.
+    """
+    return torch.stack([torch.randperm(seq_len) for _ in range(batch_size)])
+
+
+if __name__ == '__main__':
+    transformer = SimpleTransformerBlocks(DefaultTransformerConfig, vocab_size=30_000)
+    
+    print(generate_random_seq_ids(batch_size=2, seq_len=10))
+
+    ids = generate_random_seq_ids(batch_size=64, seq_len=256)
+    print(ids.shape)
+
+    transformer_outs = transformer(ids)
+    

@@ -16,9 +16,6 @@ from tokenizers.pre_tokenizers import Whitespace
 # use bert pretokenizer
 from typing import List
 
-from dataset.squad.iterators import create_corpus_from_document_query_lists as squad_corpus
-from dataset.squad.iterators import create_query_document_lists_squad as squad_query_document_list
-
 
 unk_token = "<UNK>"
 spl_tokens = ["<UNK>", "<SEP>", "<MASK>", "<CLS>"]
@@ -138,6 +135,7 @@ def get_vocab_from_tokenizer(tokenizer: Tokenizer):
 
 if __name__ == '__main__':
     # create corpus
-    queries, documents = squad_query_document_list()
-    corpus = squad_corpus(documents, queries)
+    print(os.getcwd())
+    corpus = os.listdir(".corpus_caches/orcas/medium")
+    corpus = [".corpus_caches/orcas/medium/" + file for file in corpus]
     tokenizer = train_BertWordPieceTokenizer(corpus, vocab_size=30_000)

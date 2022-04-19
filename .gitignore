@@ -14,6 +14,9 @@ __pycache__/
 
 # Distribution / packaging
 .Python
+.corpus_caches
+.dataset_caches
+.vscode
 build/
 squad-data/
 develop-eggs/
