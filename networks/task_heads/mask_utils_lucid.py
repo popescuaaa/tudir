@@ -1,4 +1,5 @@
 import torch
+import math
 from functools import reduce
 
 def prob_mask_like(t, prob):

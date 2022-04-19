@@ -92,7 +92,7 @@ class SpanContextPrediction(TaskHead):
 
 
 sop_config = TaskConfig("mlm", input_dim=768, output_dim=768)
-sop_head = SOP_head(sop_config)
+sop_head = SenteceOrderPrediction(sop_config)
 
 if __name__ == '__main__':
     # Load tokenizer from BERT_tok-trained.json
