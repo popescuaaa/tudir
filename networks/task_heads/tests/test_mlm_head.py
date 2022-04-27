@@ -13,8 +13,7 @@ from torch.utils.data import DataLoader
 from torch.nn import functional as F
 
 from task_heads.mlm_head import MLM_Config, MLM_head
-from networks.transformers.query_document_transformer import QueryDocumentTransformer
-from networks.transformers.vanilla_transformer import SimpleTransformerBlocks, TransformerBlockConfig
+from vanilla_transformer_mod import SimpleTransformerBlocks, TransformerBlockConfig
 
 
 def test_mlm_head_forward(queries_dataloader, tokenizer):

@@ -1,22 +1,17 @@
-
-# NOT TESTED YET
-
-
+from cProfile import label
 import math
 import os
 import sys
 import torch
-from networks.task_heads.mask_utils_lucid import mask_with_tokens
-sys.path.append(os.getcwd())
+from torch import Tensor
 from task_head import TaskHead
 from task_head import TaskConfig
-from typing import List, Optional
+from typing import List, Optional, Tuple
 from functools import reduce
-
 from torch.nn import functional as F
 
-from networks.transformers.vanilla_transformer \
-    import SimpleTransformerBlocks, TransformerBlockConfig
+sys.path.append(os.getcwd())
+from vanilla_transformer_mod import SimpleTransformerBlocks, TransformerBlockConfig
 
 
 class MLM_Config(TaskConfig):
@@ -28,6 +23,7 @@ class MLM_Config(TaskConfig):
             name: str,
             input_dim: int,
             output_dim: int,
+
             mask_prob: float,
             replace_prob: float,
             random_token_prob: float,
@@ -37,10 +33,7 @@ class MLM_Config(TaskConfig):
             mask_ignore_token_ids: List[int]) -> None:
         
         super().__init__(name, input_dim, output_dim)
-        self.name = name
-        self.input_dim = input_dim
-        self.output_dim = output_dim
-        
+
         self.mask_prob = mask_prob
         self.replace_prob = replace_prob
         self.random_token_prob = random_token_prob
@@ -64,120 +57,113 @@ class MLM_head(TaskHead):
         self.config = config
         self.transformer = transformer
 
-
-    def prob_mask_like(input, prob):
-        """
-        Generate a mask with the same shape as input, where the mask is True
-        with probability prob."""
-        return torch.zeros_like(input).float().uniform_(0, 1) < prob
-
-
-    def mask_with_tokens(self, token_seq, token_ids):
-        """
-        True for tokens that should not be masked.
-        False for tokens that can be masked.
-        """
-        init_no_mask = torch.full_like(token_seq, False, dtype=torch.bool)
-        mask = reduce(lambda acc, el: acc | (token_seq == el), token_ids, init_no_mask)
+    def mask_with_tokens(self, t, token_ids):
+        init_no_mask = torch.full_like(t, False, dtype=torch.bool)
+        mask = reduce(lambda acc, el: acc | (t == el), token_ids, init_no_mask)
         return mask
 
-
-    def get_mask_subset_with_prob(self, mask, prob):
-        batch, seq_len, device = *mask.shape, mask.device
-        max_masked = math.ceil(prob * seq_len)
-
-        num_tokens = mask.sum(dim=-1, keepdim=True)
-        mask_excess = (mask.cumsum(dim=-1) > (num_tokens * prob).ceil())
-        mask_excess = mask_excess[:, :max_masked]
-
-        rand = torch.rand((batch, seq_len), device=device).masked_fill(~mask, -1e9)
-        _, sampled_indices = rand.topk(max_masked, dim=-1)
-        sampled_indices = (sampled_indices + 1).masked_fill_(mask_excess, 0)
-
-        new_mask = torch.zeros((batch, seq_len + 1), device=device)
-        new_mask.scatter_(-1, sampled_indices, 1)
-        return new_mask[:, 1:].bool()
-
-
-    def prepare_inputs(self, inputs, **kwargs):
-        
-        # Ignore tokens such as [CLS], [SEP], etc.
-        # no_mask will have True for these tokens.
-        no_mask = self.mask_with_tokens(inputs, self.config.mask_ignore_token_ids)
-
-        mask = self.get_mask_subset_with_prob(~no_mask, self.config.mask_prob)
-
-        masked_seq = inputs.clone().detach()
-
-        if self.config.random_token_prob > 0:
-            raise "Not implemented yet (random token prob)"
-
-        # generate a replace probability tensor
-        replace_prob = self.prob_mask_like(inputs, self.replace_prob)
-
-        # mask the tokens with probability replace_prob
-        masked_seq = masked_seq.masked_fill(mask * replace_prob, self.mask_token_id)
-
-        return masked_seq, inputs.clone()
-
-
-    def forward(self, input_batch, targets=None):
+    def prepare_inputs(self, inputs: Tensor) -> Tuple[Tensor, Tensor]:
         """
-        input_batch: [batch_size, seq_len, input_dim]
+        Prepare inputs for the MLM head.
         """
+        labels = inputs.clone()
 
-        mlm_inputs, mlm_targets = self.prepare_inputs(input_batch)
+        probability_matrix = torch.full(labels.shape, self.config.mask_prob)
+        special_tokens_mask = self.mask_with_tokens(labels, self.config.mask_ignore_token_ids)
+        probability_matrix.masked_fill_(torch.tensor(special_tokens_mask, dtype=torch.bool), value=0.0)
+        masked_indices = torch.bernoulli(probability_matrix).bool()
+        labels[~masked_indices] = -1
 
-        mlm_outputs = self.transformer(mlm_inputs)
+        indices_replaced = torch.bernoulli(torch.full(labels.shape, self.config.replace_prob)).bool() & masked_indices
+        inputs[indices_replaced] = self.config.mask_token_id
 
-        mlm_loss = F.cross_entropy(
-            mlm_outputs.transpose(1, 2),
-            mlm_targets,
-            ignore_index = self.pad_token_id
-        )
+        indices_random = torch.bernoulli(torch.full(labels.shape, self.config.random_token_prob)).bool() & masked_indices & ~indices_replaced
+        random_words = torch.randint(self.config.num_tokens, labels.shape, dtype=torch.long)
+        inputs[indices_random] = random_words[indices_random]
 
-        return mlm_loss
+        return inputs, labels
+
+    def forward(self, inputs: Tensor, targets: Tensor=None) -> Tuple[Tensor, Tensor]:
+        """
+        Forward pass of the MLM head.
+        """
+        mlm_inputs, mlm_targets = self.prepare_inputs(inputs)
+
+        print("MASKED SEQ:\n", mlm_inputs.shape)
+        print("TARGET SEQ:\n", mlm_targets.shape)
+
+        mlm_output = self.transformer(mlm_inputs)
+
+        print(mlm_output.shape)
+
+        mlm_loss = F.cross_entropy(mlm_output.transpose(1, 2), mlm_targets, ignore_index=-1)
+
+        return mlm_output, mlm_loss
 
 
+vocab_size = 10
+
+# Transformer config
+transf_embedding_dim = 10
+transf_hidden_dim = 10
+transf_num_layers = 1
+transf_num_heads = 1
+transf_dropout = 0
+transf_act = F.gelu
 
 
 mlm_transformer_config = TransformerBlockConfig(
-    embedding_dim=768,
-    hidden_dim=2048,
-    num_layers=12,
-    num_heads=16,
-    dropout=0.1,
+    embedding_dim=transf_embedding_dim,
+    hidden_dim=transf_hidden_dim,
+    num_layers=transf_num_layers,
+    num_heads=transf_num_heads,
+    dropout=transf_dropout,
     activation=F.gelu,
     stochastic_depth=False,
 )
-mlm_transformer = SimpleTransformerBlocks(mlm_transformer_config, vocab_size=30_000)
+mlm_transformer = SimpleTransformerBlocks(mlm_transformer_config, vocab_size=vocab_size)
+
+UNK_TOK = 0
+SEP_TOK = 1
+MASK_TOK = 2
+CLS_TOK = 3
+PAD_TOK = 4
+
 
 mlm_head_config = MLM_Config(
     name="mlm_head",
+    
     input_dim=768,
     output_dim=768,
-    mask_prob=0.15,
-    replace_prob=0.9,
-    random_token_prob=0,
-    num_tokens=None,
-    mask_token_id=2,
-    pad_token_id=0,
-    mask_ignore_token_ids=[]
+
+    mask_prob=0.99,
+    replace_prob=0.99,
+    random_token_prob=0.5, # percentage of the remaining 1-replace_prob tokens
+
+    num_tokens=vocab_size,
+    mask_token_id=MASK_TOK,
+    pad_token_id=PAD_TOK,
+    mask_ignore_token_ids=[SEP_TOK, CLS_TOK, PAD_TOK]
 )
 
 mlm_head = MLM_head(mlm_head_config, mlm_transformer)
 
-'''
-for batch_queries in enumerate(queries_dataloader):
-    # TODO: batch_encode_plus - get the attention mask from dict output
-    batch_queries = Tokenizer.batch_encode(batch_queries, max_length=max_query_length).ids
 
-    batch_queries = torch.tensor(batch_queries, dtype=torch.long)
-    batch_queries = batch_queries.to(device)
-    mlm_inputs, mlm_targets = mlm_head.prepare_inputs(batch_queries)
-    
-    mlm_hidden_states = Transformer(mlm_inputs, attention_mask=None, padding ...)
+# batch_size, seq_len, input_dim
+trans_input_shape = (2, 9)
+tok_input = torch.randint(5, vocab_size, trans_input_shape)
+tok_input[0][0] = 3
+tok_input[0][7] = 1
+tok_input[0][8] = 4
+tok_input[1][0] = 3
+tok_input[1][7] = 1
+tok_input[1][8] = 4
 
-    mlm_outputs, mlm_loss = mlm_head(mlm_hidden_states, mlm_targets)
-'''
+print(tok_input)
+
+
+mlm_head(tok_input)
+
+
+
 
