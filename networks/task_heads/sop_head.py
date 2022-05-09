@@ -1,4 +1,3 @@
-
 import sys
 import os
 from typing import Tuple
@@ -6,20 +5,39 @@ from task_head import TaskHead
 from task_head import TaskConfig
 import torch
 from torch import nn
-from networks.transformers.vanilla_transformer import SimpleTransformerBlocks, TransformerBlockConfig, DefaultTransformerConfig
+from networks.transformers.vanilla_transformer import SimpleTransformerBlocks, TransformerBlockConfig, \
+    DefaultTransformerConfig
 
 sys.path.append(os.getcwd())
 
 
-class SenteceOrderPrediction(TaskHead):
+class SOPConfig(TaskConfig):
     """
-    Masked Language Modeling head.    
+    Config for the SOP head.
     """
-    def __init__(self, config):
+
+    def __init__(
+            self,
+            name: str,
+            input_dim: int,
+            output_dim: int) -> None:
+        super().__init__(name, input_dim, output_dim)
+
+        self.name = name
+        self.input_dim = input_dim
+        self.output_dim = output_dim
+
+
+class SentenceOrderPrediction(TaskHead):
+    """
+    Sentence order prediction head.
+    """
+
+    def __init__(self, config: TaskConfig):
         super().__init__(config)
         self.loss = nn.CrossEntropyLoss(reduction='none')
 
-    def forward(self, inputs: torch.Tensor, targets: torch.Tensor=None) -> Tuple[torch.Tensor, torch.Tensor]:
+    def forward(self, inputs: torch.Tensor, targets: torch.Tensor = None) -> Tuple[torch.Tensor, torch.Tensor]:
         pass
 
     def prepare_inputs(self, inputs: torch.Tensor, **kwargs):
@@ -36,16 +54,18 @@ class SenteceOrderPrediction(TaskHead):
         targets = None
         return inputs, targets
 
+
 class SpanOrderPrediction(TaskHead):
     """
     Span Order prediction task: given text tokens: [t1, t2, .... t20] predict if
     text[j:k] is before or after text[i:j]    
     """
+
     def __init__(self, config):
         super().__init__(config)
         self.loss = nn.CrossEntropyLoss(reduction='none')
 
-    def forward(self, inputs: torch.Tensor, targets: torch.Tensor=None) -> Tuple[torch.Tensor, torch.Tensor]:
+    def forward(self, inputs: torch.Tensor, targets: torch.Tensor = None) -> Tuple[torch.Tensor, torch.Tensor]:
         pass
 
     def prepare_inputs(self, inputs: torch.Tensor, **kwargs):
@@ -68,11 +88,12 @@ class SpanContextPrediction(TaskHead):
     Span Context prediction task: given text tokens: [t1, t2, ..... t20] predict if
     text[j:k] is contained in text[i:p]
     """
+
     def __init__(self, config):
         super().__init__(config)
         self.loss = nn.CrossEntropyLoss(reduction='none')
 
-    def forward(self, inputs: torch.Tensor, targets: torch.Tensor=None) -> Tuple[torch.Tensor, torch.Tensor]:
+    def forward(self, inputs: torch.Tensor, targets: torch.Tensor = None) -> Tuple[torch.Tensor, torch.Tensor]:
         pass
 
     def prepare_inputs(self, inputs: torch.Tensor, **kwargs):
@@ -90,9 +111,8 @@ class SpanContextPrediction(TaskHead):
         return inputs, targets
 
 
-
-sop_config = TaskConfig("mlm", input_dim=768, output_dim=768)
-sop_head = SenteceOrderPrediction(sop_config)
+sop_config = TaskConfig("sop", input_dim=768, output_dim=768)
+sop_head = SentenceOrderPrediction(sop_config)
 
 if __name__ == '__main__':
     # Load tokenizer from BERT_tok-trained.json
@@ -100,12 +120,10 @@ if __name__ == '__main__':
     # use dummy text as input
     dummy_text = [
         ['Ma cheama George si sunt un Babalau. Teo e cel mai prost om. Ceachi e frumos'],
-        ['aplicatia asta nu inteleg cum functioneaza cum naiba vin requesturile. adica nu ai metode separate care sa trateze anumite requesturi']
+        ['aplicatia asta nu inteleg cum functioneaza cum naiba vin requesturile. adica nu ai metode'
+         ' separate care sa trateze anumite requesturi']
     ]
     # tokenize the text
     # dummy_text = tokenizer.batch_encode(dummy_text, max_length=512)
     # input_ids, target_ids = task_head.prepare_inputs(dummy_text)
     # task_output, task_loss = task_head(input_ids, target_ids)
-
-
-
