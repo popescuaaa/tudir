@@ -1,7 +1,7 @@
 import sys
 import os
 from typing import Tuple
-from tokenizers import BertWordPieceTokenizer
+from tokenizers import BertWordPieceTokenizer, Tokenizer
 
 from task_head import TaskHead
 from task_head import TaskConfig
@@ -127,7 +127,7 @@ class SpanContextPrediction(TaskHead):
         """
         # Prepare inputs for albert sentence order prediction
         targets = 0
-
+        print(inputs)
         return inputs, targets
 
 
@@ -136,16 +136,17 @@ sop_head = SentenceOrderPrediction(sop_config)
 
 if __name__ == '__main__':
     # Load tokenizer from BERT_tok-trained.json
-    tokenizer = Tokenizer.from_file("BERT_tok-trained.json")
-    # use dummy text as input
+    tokenizer = Tokenizer.from_file("./BERT_tok-trained.json")    # use dummy text as input
+
     dummy_text = [
         ['Ma cheama George si sunt un Babalau. Teo e cel mai prost om. Ceachi e frumos'],
         ['aplicatia asta nu inteleg cum functioneaza cum naiba vin requesturile. adica nu ai metode'
          ' separate care sa trateze anumite requesturi']
     ]
+
     dummy_text = tokenizer.batch_encode(dummy_text, max_length=512)
-    input_ids, target_ids = task_head.prepare_inputs(dummy_text)
-    task_output, task_loss = task_head(input_ids, target_ids)
+    input_ids, target_ids = sop_head.prepare_inputs(dummy_text)
+    task_output, task_loss = sop_head(input_ids, target_ids)
 
     """
     [cls] Hello from Spain [ sep ] The weather in Spain is cold [ sep ]
