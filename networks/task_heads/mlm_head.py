@@ -16,6 +16,7 @@ class MLM_Config(TaskConfig):
     """
     Config for the MLM head.
     """
+
     def __init__(
             self,
             name: str,
@@ -28,13 +29,12 @@ class MLM_Config(TaskConfig):
             mask_token_id: int,
             pad_token_id: int,
             mask_ignore_token_ids: List[int]) -> None:
-        
         super().__init__(name, input_dim, output_dim)
 
         self.mask_prob = mask_prob
         self.replace_prob = replace_prob
         self.random_token_prob = random_token_prob
-        
+
         self.num_tokens = num_tokens
         self.mask_token_id = mask_token_id
         self.pad_token_id = pad_token_id
@@ -74,13 +74,14 @@ class MLM_head(TaskHead):
         indices_replaced = torch.bernoulli(torch.full(labels.shape, self.config.replace_prob)).bool() & masked_indices
         inputs[indices_replaced] = self.config.mask_token_id
 
-        indices_random = torch.bernoulli(torch.full(labels.shape, self.config.random_token_prob)).bool() & masked_indices & ~indices_replaced
+        indices_random = torch.bernoulli(
+            torch.full(labels.shape, self.config.random_token_prob)).bool() & masked_indices & ~indices_replaced
         random_words = torch.randint(self.config.num_tokens, labels.shape, dtype=torch.long)
         inputs[indices_random] = random_words[indices_random]
 
         return inputs, labels
 
-    def forward(self, inputs: Tensor, targets: Tensor=None) -> Tuple[Tensor, Tensor]:
+    def forward(self, inputs: Tensor, targets: Tensor = None) -> Tuple[Tensor, Tensor]:
         """
         Forward pass of the MLM head.
         """
@@ -108,7 +109,6 @@ transf_num_heads = 1
 transf_dropout = 0
 transf_act = F.gelu
 
-
 mlm_transformer_config = TransformerBlockConfig(
     embedding_dim=transf_embedding_dim,
     hidden_dim=transf_hidden_dim,
@@ -126,16 +126,15 @@ MASK_TOK = 2
 CLS_TOK = 3
 PAD_TOK = 4
 
-
 mlm_head_config = MLM_Config(
     name="mlm_head",
-    
+
     input_dim=768,
     output_dim=768,
 
     mask_prob=0.99,
     replace_prob=0.99,
-    random_token_prob=0.5, # percentage of the remaining 1-replace_prob tokens
+    random_token_prob=0.5,  # percentage of the remaining 1-replace_prob tokens
 
     num_tokens=vocab_size,
     mask_token_id=MASK_TOK,
@@ -144,7 +143,6 @@ mlm_head_config = MLM_Config(
 )
 
 mlm_head = MLM_head(mlm_head_config, mlm_transformer)
-
 
 # batch_size, seq_len, input_dim
 trans_input_shape = (2, 9)
@@ -158,9 +156,4 @@ tok_input[1][8] = 4
 
 print(tok_input)
 
-
 mlm_head(tok_input)
-
-
-
-
