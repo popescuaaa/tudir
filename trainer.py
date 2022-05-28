@@ -1,5 +1,9 @@
+from collections import defaultdict
+from email.policy import default
 import random
 from re import I
+
+from sklearn.preprocessing import scale
 from dataset.msmarco_orcas.loader import QueryDocumentOrcasDataset
 from tokenization.vocab_tokenizers import train_BertWordPieceTokenizer
 from torch.utils.data import DataLoader
@@ -13,10 +17,15 @@ from networks.task_heads.sop_head import SentenceOrderPrediction, SOPConfig
 from networks.transformers.query_document_transformer import QueryDocumentTransformer
 import torch.nn.functional as F
 from torch.cuda import amp
+import wandb
+from tqdm import tqdm
+
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
+scaler = amp.GradScaler()
 
 def build_dataloader() -> DataLoader:
-    ds = QueryDocumentOrcasDataset(split="tiny")
-    dl = DataLoader(ds, batch_size=128, shuffle=True, num_workers=16)
+    ds = QueryDocumentOrcasDataset(split="all")
+    dl = DataLoader(ds, batch_size=16, shuffle=True, num_workers=16)
     return dl
 
 def build_tokenizer(tokenizer_path: str) -> Tokenizer:
@@ -30,9 +39,9 @@ def create_transformer(vocab: Dict) -> QueryDocumentTransformer:
 
 def create_mlm_head(vocab: Dict) -> MLM_head:
     mlm_config = MLM_Config(
-        name="MLM_Pervers",
-        input_dim=len(vocab.keys()),
-        output_dim=2,
+        name="MLM_Head",
+        input_dim=768,
+        output_dim=len(vocab.keys()),
         dropout=0.1,
         mask_prob=0.15,
         num_tokens=len(vocab.keys()),
@@ -63,53 +72,103 @@ def pretraining_step(
                 ):
 
     max_len = 512
-    for idx, batch in enumerate(dl):
-        q_batch, d_batch = batch
-        
-        # Tokenize the batch
-        tok_q_batch = tokenizer.encode_batch(q_batch, is_pretokenized=False, add_special_tokens=True)
-        tok_d_batch = tokenizer.encode_batch(d_batch, is_pretokenized=False, add_special_tokens=True)
+    with amp.autocast(enabled=True):
+        for epoch in range(100):
+            loss_dict = defaultdict(float)
+            for idx, batch in tqdm(enumerate(dl), total=len(dl), desc="Epoch {}".format(epoch)):
+                q_batch, d_batch = batch
 
-        # Prepare qs
-        q_inputs, q_targets = mlm_head.prepare_inputs(inputs=[torch.tensor(t.ids) for t in tok_q_batch], max_len=256)
+                optimizer.zero_grad()
+                
+                # Tokenize the batch
+                tok_q_batch = tokenizer.encode_batch(q_batch, is_pretokenized=False, add_special_tokens=True)
+                tok_d_batch = tokenizer.encode_batch(d_batch, is_pretokenized=False, add_special_tokens=True)
 
-        # Prepare ds
-        seqs = [t.ids for t in tok_d_batch]
-        for idx, s in enumerate(seqs):
-            start = random.randint(1, max(len(s) - max_len - 1, 1))
-            seqs[idx] = s[start:start + max_len - 1]
-            if seqs[idx][-1] == 3:
-                seqs[idx][-1] = 0 # foce final token to be a pad token
-            
-            # Pad the sequence
-            seqs[idx] = [2] + seqs[idx] + [0] * (max_len - len(seqs[idx]) - 1)
-            
-        sep_list = set([18, 35, 5])
-        seqs = [torch.tensor([tok if tok not in sep_list else 3  for tok in s]) for s in seqs]
+                # Prepare qs
+                q_inputs, q_targets = mlm_head.prepare_inputs(inputs=[torch.tensor(t.ids) for t in tok_q_batch], max_len=max_len)
 
-        inputs = torch.stack(seqs, dim=0)
-        print(inputs.shape)
-        d_mask = (inputs == 0).long()
-        d_inputs, d_targets = sop_head.prepare_inputs(inputs=inputs)
+                # Prepare ds
+                seqs = [t.ids for t in tok_d_batch]
+                d_inputs, d_targets = sop_head.prepare_inputs(inputs=seqs, max_len=max_len)
 
-        print(d_inputs.shape)
+                # Move to GPU
+                q_inputs = q_inputs.cuda()
+                q_targets = q_targets.cuda()
+                d_inputs = d_inputs.cuda()
+                d_targets = d_targets.cuda()
 
+                # Task indexes
+                task_indexes = {
+                    "mlm": [0, len(q_batch)],
+                    "sop": [len(q_batch), 2*len(q_batch)]
+                }
 
+                # Prepare the transformer
+                emb_ids = torch.cat([q_inputs, d_inputs], dim=0)
+                with torch.no_grad():
+                    mask = (emb_ids == 0).float() # pad ids
+
+                embs = transformer(emb_ids, None, mask, task_indexes)
+
+                # Compute losses
+                losses = {
+                    "mlm": mlm_head(embs[:len(q_batch)], q_targets)[1],
+                    "sop": sop_head(embs[len(q_batch):], d_targets)[1]
+                }
+
+                report_loss = {
+                    k: v.detach().cpu().item() for k, v in losses.items()
+                }
+
+                for k, v in losses.items():
+                    loss_dict[k] += v.detach().cpu().item()
+
+                loss = sum(losses.values())
+                unscaled_loss = loss
+                loss = scaler.scale(loss)
+                loss.backward()
+                scaler.unscale_(optimizer)
+                
+                torch.nn.utils.clip_grad_norm_(mlm_head.parameters(), 1.0)
+                torch.nn.utils.clip_grad_norm_(sop_head.parameters(), 1.0)
+                torch.nn.utils.clip_grad_norm_(transformer.parameters(), 1.0)
+
+                scaler.step(optimizer)
+                scaler.update()
+
+                # if idx % 2 == 1:
+                #     # print("Loss: ", unscaled_loss.item())
+                #     print(report_loss)
+
+                if idx % 100 == 0:
+                    for k, v in report_loss.items():
+                        report_loss[k] /= 100
+                        print(f"{k}: {v}")
+                        wandb.log({"{}_loss".format(k): v})
+                    report_loss = defaultdict(float)
 
 def contrastive_step(dl: DataLoader, tok: Tokenizer):
+    # diagrama CLIP
     pass
 
 if __name__ == "__main__":
+    run_name = "SSL_Query_doc"
+    wandb.init(config={}, project='_ssl_', name=run_name)
+
     dl = build_dataloader()
     tokenizer = build_tokenizer(tokenizer_path="./BERT_tok-trained.json")
-    mlm_head = create_mlm_head(vocab=tokenizer.get_vocab())
-    sop_head = create_sop_head()
-    transformer = create_transformer(vocab=tokenizer.get_vocab())
+    
+    mlm_head = create_mlm_head(vocab=tokenizer.get_vocab()).cuda()
+    sop_head = create_sop_head().cuda()
+    transformer = create_transformer(vocab=tokenizer.get_vocab()).cuda()
+
+    # Lr scheduler cosine annealing with cold restarts
     optimizer = torch.optim.RAdam(
         list(transformer.parameters()) + \
         list(mlm_head.parameters()) + \
         list(sop_head.parameters()),
-        lr=1e-4
+        lr=1e-4,
+        weight_decay=1e-5
     )
 
     pretraining_step(
@@ -120,5 +179,7 @@ if __name__ == "__main__":
         transformer=transformer, 
         optimizer=optimizer
     )
+
+   
 
 

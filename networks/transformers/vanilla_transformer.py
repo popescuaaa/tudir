@@ -5,6 +5,7 @@ from torchvision.ops.stochastic_depth import StochasticDepth
 from torch import nn
 from torch import Tensor
 from torch.nn import functional as F
+from functools import partial
 
 def probability_string(probability: float) -> str:
     """

@@ -8,6 +8,9 @@ from typing import Callable, List, Optional, Tuple
 from functools import reduce
 from torch.nn import functional as F
 import torch.nn as nn
+import numpy as np
+
+torch.autograd.set_detect_anomaly(True)
 
 
 class MLM_Config(TaskConfig):
@@ -71,7 +74,8 @@ class MLM_head(TaskHead):
         Pad inputs to the correct length.
         """
         return inputs
-
+    
+    @ torch.no_grad()
     def prepare_inputs(self, inputs: Tensor, max_len: int) -> Tuple[Tensor, Tensor]:
         """
         Prepare inputs for the MLM head.
@@ -128,8 +132,9 @@ class MLM_head(TaskHead):
         Forward pass of the MLM head.
         """
         output = self.head(inputs)
-        output = output.view(-1, self.config.output_dim)
-        loss = F.cross_entropy(output, targets, reduction='batchmean')
+        targets = targets.view(-1).detach()
+        output = output.reshape(np.prod(output.shape[:2]), self.config.output_dim)
+        loss = F.cross_entropy(output, targets, reduction='mean', ignore_index=self.config.pad_token_id)
         return output, loss
 
 

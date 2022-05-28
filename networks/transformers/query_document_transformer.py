@@ -24,11 +24,11 @@ class QueryDocumentTransformer(nn.Module):
         self.transformer_blocks = SimpleTransformerBlocks(config=transformer_config)
         self.embedding = nn.Embedding(vocab_size, transformer_config.embedding_dim)
         self.projection = nn.ModuleDict({
-            t: nn.Linear(transformer_config.embedding_dim, vocab_size, bias=False) \
+            t: nn.Linear(transformer_config.embedding_dim, transformer_config.embedding_dim, bias=False) \
                  for t in task_names
         })
 
-        self.positional_encoding = PositionalEncoding(transformer_config.hidden_dim)
+        self.positional_encoding = PositionalEncoding(transformer_config.embedding_dim)
 
     def forward(self, 
                 x: Tensor, 
@@ -38,10 +38,12 @@ class QueryDocumentTransformer(nn.Module):
 
         emb = self.embedding(x)
 
-        emb = self.positional_encoding(emb) # TODO review by ponku
-
-        for t, (t_start, t_end) in task.items():
-            emb[t_start:t_end, ...] = self.projection[t](emb[t_start:t_end, ...])
+        emb = self.positional_encoding(emb)
+        
+        emb_m, emb_s = torch.chunk(emb, 2)
+        emb_m = self.projection["mlm"](emb_m)
+        emb_s = self.projection["sop"](emb_s)
+        emb = torch.cat([emb_m, emb_s], dim=0)
 
         emb = self.transformer_blocks(emb, src_mask=src_mask, src_key_padding_mask=src_key_padding_mask)
         return emb 

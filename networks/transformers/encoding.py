@@ -15,10 +15,12 @@ class PositionalEncoding(nn.Module):
         pe[:, 0, 0::2] = torch.sin(position * div_term)
         pe[:, 0, 1::2] = torch.cos(position * div_term)
         self.register_buffer('pe', pe)
+        print(self.pe.shape)
+
     def forward(self, x: Tensor) -> Tensor:
         """
         Args:
             x: Tensor, shape [seq_len, batch_size, embedding_dim]
         """
-        x = x + self.pe[:x.size(0)]
+        x = x + self.pe[:x.size(0)].to(x.device)
         return self.dropout(x)

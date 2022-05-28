@@ -10,8 +10,9 @@ if __name__ == '__main__':
     #
     # text_paths = [os.path.join(path, text_path) for text_path in text_paths]
     # tokenizer = train_BertWordPieceTokenizer(text_paths)
-    ds = QueryDocumentOrcasDataset(split="all")
+    ds = QueryDocumentOrcasDataset(split="tiny")
     print(ds[0])
+    print(ds[1])
 
     """
     Pretraining:
