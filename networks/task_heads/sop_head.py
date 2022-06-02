@@ -16,9 +16,6 @@ import numpy as np
 
 sys.path.append(os.getcwd())
 
-# TODO George: sophead mod
-# cutoff la un random point + permutare inainte si dupa cutoff point (cu prob 50%)
-
 def truncate_pad_sentence(
     sentence: List[int],
     max_length: int,
@@ -33,6 +30,46 @@ def truncate_pad_sentence(
         sentence = sentence + [pad_id] * (max_length - len(sentence))
     return sentence
 
+def process_sentence2(
+    sentence: List[int],
+    pad_id: int = 0,
+    cls_id: int = 2,
+    sep_id: int = 3
+) -> Tuple[torch.Tensor, bool]:
+    if len(sentence) == 0:
+        sentence[0] = cls_id
+        return sentence, 0
+
+    # Compute pad length
+    intial_len = len(sentence)
+
+    # Remove padding
+    sentence = [word for word in sentence if word != pad_id]
+
+    t_sentence = torch.tensor(sentence[:-1], dtype=torch.long)
+    # Find first pad_id in sentence
+    pad_idx = t_sentence.eq(pad_id).nonzero()
+    if pad_idx.size(0) > 0:
+        pad_idx = pad_idx[0][0]
+    else:
+        pad_idx = len(sentence) - 1
+
+    pad_len = intial_len - pad_idx - 1
+    split_idx = random.randint(1, pad_idx)
+    
+    splitted_sentences = [t_sentence[:split_idx], t_sentence[split_idx:]]
+
+    # Perform random shuffle
+    shuffle = random.random() > 0.5
+    if shuffle:
+        splitted_sentences[0], splitted_sentences[1] = splitted_sentences[1], splitted_sentences[0]
+
+    # Combine sentences
+    t_sentence = torch.cat([splitted_sentences[0],  torch.tensor([sep_id]), splitted_sentences[1], torch.tensor([pad_id] * pad_len)], dim=0)
+    
+    return t_sentence, int(shuffle)
+
+
 def process_sentence(
     sentence: List[int],
     pad_id: int = 0,
@@ -43,27 +80,30 @@ def process_sentence(
 
     res = []
     acc = []
+
     for idx, word in enumerate(sentence[1:]):
         # break when we reach padding
         if word == pad_id:
             break
         # when we reach a delimiter, create a new sentence, append accumulator
-        if word in delim:
-            # replace delimiter with SEP token
-            res.append(acc)
-            acc = []
-        # otherwise increase current accumulator
-        else:
-            acc.append(word)
+        # if idx == split_idx:
+        #     # replace delimiter with SEP token
+        #     res.append(acc)
+        #     acc = []
+        # # otherwise increase current accumulator
+        # else:
+        acc.append(word)
     # if there are still words in the accumulator, append it
     if acc:
         res.append(acc)
     # shuffle the sentences
- 
-    if len(res) == 0:
+    
+    if len(res) == 0 or len(res) == 1:
         sentence[0] = cls_id
         return sentence, 0
     elif len(res) > 1:
+        split_idx = random.randint(1, len(res[0]) - 1)
+        res = [res[0][:split_idx], res[0][split_idx:]]
         shuffle = random.random() > 0.5
         if shuffle:
             is_correct = False
@@ -72,7 +112,6 @@ def process_sentence(
                 for i in range(len(res)):
                     if i != perm[i]: 
                         break
-
                 if i != len(res) - 1:
                     is_correct = True
             
@@ -82,12 +121,14 @@ def process_sentence(
 
     # add CLS token to first sentence
     res[0] = [cls_id] + res[0]
-    for i in range(len(res) - 1):
-        res[i] += [sep_id]
-        
+    # for i in range(len(res) - 1):
+    #     res[i] += [sep_id]
+    
+    res[0][-1] = sep_id
+
     # flatten the sentences
     res = [word for sent in res for word in sent]
-
+    
     # extend with padding
     if idx != len(sentence) - 1:
         # print("Pads", len(sentence[idx + 1:]))
@@ -121,7 +162,8 @@ class Parser:
     def parse(self, sentence: Union[List[int], List[List]]) -> Tuple[List[int], List[int]]:
         if not isinstance(sentence[0], list):
             sentence = [sentence]
-        with futures.ProcessPoolExecutor(max_workers=self.num_workers) as executor:
+
+        with futures.ProcessPoolExecutor(max_workers=1) as executor:
             pad_res = list(executor.map(self.__pad_func, sentence))
             split_res = list(executor.map(self.__split_func, pad_res))
         
@@ -173,100 +215,16 @@ class SentenceOrderPrediction(TaskHead):
         output = self.sop_classifier(inputs)
         loss = self.loss(output, targets)
         return output, loss
-
-    def split_inputs(self, batch_inputs: List[List[int]], **kwargs) -> Tuple[Tensor, Tensor]:
-        # res = []
-        # for inputs in batch_inputs:
-        #     # Split tensor by sep + cls positions and perform random shuffle
-        #     indexes = torch.arange(0, inputs.shape[0], dtype=torch.long)
-
-        #     pad_mask = (inputs == self.pad_token_id).long().nonzero().view(-1)
-        #     if pad_mask.sum() < 1:
-        #         first_pad = len(inputs)
-        #     else:
-        #         first_pad = indexes.gather(0, pad_mask)[0]
-            
-        #     non_pad_inputs = inputs[1:first_pad]
-        #     non_pad_indexes = indexes[1:first_pad]
-
-        #     print(non_pad_inputs.shape)
-        #     mask = (non_pad_inputs == self.sep_token_id).long().nonzero().view(-1)
-        #     print(mask.shape)
-        #     sep_indexes = non_pad_indexes.gather(0, mask)
-        #     print(sep_indexes.shape)
-        #     sep_indexes[0] += 1
-        #     sep_indexes = sep_indexes - torch.cat([torch.tensor([0]), sep_indexes[:-1] - 1])
-        #     if first_pad == len(inputs):
-        #         sep_indexes[-1] = len(inputs) - torch.sum(sep_indexes[:-1])
-        #     sep_indexes[-1] -= 1
-
-        #     if torch.sum(sep_indexes) < first_pad:
-        #         sep_indexes[-1] += first_pad - sep_indexes[-1].item() - 1
-            
-        #     print(sum([t.item() for t in sep_indexes]))
-        #     try:
-        #         non_pad_inputs = list(non_pad_inputs.split(list(map(lambda t: t.item(), list(sep_indexes)))))
-        #     except RuntimeError:
-        #         print(torch.sum(sep_indexes), "pad:", first_pad, "len:", len(inputs))
-
-        #     if len(inputs[first_pad:]) != 0:
-        #         non_pad_inputs.append(inputs[first_pad:])
-
-        #     res.append(non_pad_inputs)
-        
-        # return res
-        pass
-
+    
+    @torch.no_grad()
     def prepare_inputs(self, inputs: torch.Tensor, max_len: int) -> Tuple[Tensor, Tensor]:
-        """
-        Function that prepares inputs token ids for the task head objective
-
-        Args:
-            inputs: (batch_size, seq_len)
-            **kwargs:
-
-        Returns:
-            (batch_size, seq_len)
-        """
-        # original_inputs = deepcopy(inputs)
-        # batch_split_inputs = self.split_inputs(inputs)
-        # res_inputs = []
-        # res_targets = []
-
-        # for split_inputs in batch_split_inputs:
-        #     permute = False
-
-        #     # Shuffle the inputs
-        #     if np.random.rand() < 0.5:
-        #         indexes = torch.randperm(len(split_inputs))
-        #         permute = True
-        #     else:
-        #         indexes = torch.arange(len(split_inputs))
-            
-        #     split_inputs = [split_inputs[index] for index in indexes]
-        #     split_inputs = torch.cat(split_inputs)
-        #     inputs = torch.cat([original_inputs[0][0].unsqueeze(0), split_inputs])
-
-        #     res_inputs.append(inputs)
-        #     if permute:
-        #         res_targets.append(torch.tensor([1]))
-        #     else:
-        #         res_targets.append(torch.tensor([0]))
-
-        # return torch.stack(res_inputs), torch.cat(res_targets)
         parser = Parser(max_length=max_len, pad_id=self.pad_token_id, cls_id=self.cls_token_id, sep_id=self.cls_token_id, delim=[18, 35, 5], num_workers=16)
         response = parser.parse(inputs)
 
         sentences, shuffles = response
-
-        # Convert to numpy array
-        sentences = np.array(sentences, dtype=np.float32)
-        shuffles = np.array(shuffles, dtype=np.float32)
-
-        # Convert to tensor
-        sentences = torch.from_numpy(sentences).long()
-        shuffles = torch.from_numpy(shuffles).long()
-
+        sentences = torch.tensor(sentences, dtype=torch.long)
+        shuffles = torch.tensor(shuffles, dtype=torch.long)
+        # sentences = torch.stack(sentences, dim=0)
         return sentences, shuffles
 
 class SpanOrderPrediction(TaskHead):
@@ -331,42 +289,3 @@ class SpanContextPrediction(TaskHead):
         targets = 0
         print(inputs)
         return inputs, targets
-
-
-# if __name__ == '__main__':
-#     UNK_TOK = 0
-#     SEP_TOK = 1
-#     MASK_TOK = 2
-#     CLS_TOK = 3
-#     PAD_TOK = 4
-
-#     vocab_size = 20
-
-#     # Transformer config
-#     transf_embedding_dim = 10
-#     transf_hidden_dim = 10
-#     transf_num_layers = 1
-#     transf_num_heads = 1
-#     transf_dropout = 0
-#     transf_act = F.gelu
-
-#     sop_transformer_config = TransformerBlockConfig(
-#         embedding_dim=transf_embedding_dim,
-#         hidden_dim=transf_hidden_dim,
-#         num_layers=transf_num_layers,
-#         num_heads=transf_num_heads,
-#         dropout=transf_dropout,
-#         activation=F.gelu,
-#         stochastic_depth=False,
-#     )
-
-#     sop_transformer = SimpleTransformerBlocks(config=sop_transformer_config, vocab_size=vocab_size)
-#     sop_head_config = TaskConfig("sop", input_dim=transf_hidden_dim, output_dim=transf_hidden_dim)
-#     sop_head = SentenceOrderPrediction(config=sop_head_config)
-#     inputs = torch.tensor(np.array([3, 2, 0, 0, 5, 6, 1, 8, 9, 10, 11, 12, 13, 14, 1, 16, 17, 18, 7, 7])).unsqueeze(0)
-#     inputs = inputs.repeat(repeats=(10, 1))
-#     inputs = inputs.long()
-#     inputs, targets = sop_head.prepare_inputs(inputs=inputs)
-#     inputs = sop_transformer(inputs)
-#     print(inputs, targets)
-#     task_output, task_loss = sop_head(inputs=inputs, targets=targets)

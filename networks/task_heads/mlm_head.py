@@ -5,10 +5,12 @@ import random
 from torch import Tensor
 from networks.task_heads.task_head import TaskHead, TaskConfig
 from typing import Callable, List, Optional, Tuple
-from functools import reduce
+from functools import reduce, partial
 from torch.nn import functional as F
 import torch.nn as nn
 import numpy as np
+
+from concurrent import futures
 
 torch.autograd.set_detect_anomaly(True)
 
@@ -41,6 +43,59 @@ class MLM_Config(TaskConfig):
         self.cls_token_id = cls_token_id
         self.sep_token_id = sep_token_id
 
+def replace_with_mask(x):
+    return 2
+
+def replace_with_random(x, num_tokens):
+    # ? exclude the special tokens from the random sampling
+    return random.randint(0, num_tokens - 1)
+
+def replace_with_identity(x):
+    return x
+
+def mlm_prep_mask(
+    seq: Tensor,
+    max_length: int,
+    functions: List[Callable],
+    function_weights: List[float],
+    num_tokens: int,
+    pad_token_id: int,
+    cls_token_id: int,
+    sep_token_id: int
+    ):
+
+    seq_masked = seq.clone()
+
+    replace_indices = random.choices(list(range(len(seq))), k=min(1, int(num_tokens * len(seq))))
+
+    replace_functions = random.choices(functions, weights=function_weights, k=len(replace_indices))
+
+    replaced_values = [f(seq[i]) for i, f in zip(replace_indices, replace_functions)]
+
+    for i, v in zip(replace_indices, replaced_values):
+        seq_masked[i] = v
+
+    seq_masked = F.pad(seq_masked, (1, 0), value=cls_token_id, mode='constant')
+    seq_masked = F.pad(seq_masked, (0, 1), value=sep_token_id, mode='constant')
+    seq_masked = F.pad(seq_masked, (0, max_length - seq_masked.shape[0]), value=pad_token_id, mode='constant')
+
+    return seq_masked
+
+def mlm_prep_target(
+    seq: Tensor,
+    max_length: int,
+    pad_token_id: int,
+    cls_token_id: int,
+    sep_token_id: int
+    ):
+
+    seq_target = seq.clone()
+    
+    seq_target = F.pad(seq_target, (1, 0), value=cls_token_id, mode='constant')
+    seq_target = F.pad(seq_target, (0, 1), value=sep_token_id, mode='constant')
+    seq_target = F.pad(seq_target, (0, max_length - seq_target.shape[0]), value=pad_token_id, mode='constant')
+
+    return seq_target
 
 class MLM_head(TaskHead):
     """
@@ -59,15 +114,16 @@ class MLM_head(TaskHead):
             nn.Linear(self.config.input_dim, self.config.output_dim, bias=False)
         )
 
-    def replace_with_mask(self, x):
-        return 2
-
-    def replace_with_random(self, x):
-        # ? exclude the special tokens from the random sampling
-        return random.randint(0, self.config.num_tokens - 1)
-
-    def replace_with_identity(self, x):
-        return x
+        self.__mlm_prep_mask = partial(mlm_prep_mask, 
+                                        num_tokens=self.config.num_tokens,
+                                        pad_token_id=self.config.pad_token_id,
+                                        cls_token_id=self.config.cls_token_id,
+                                        sep_token_id=self.config.sep_token_id,
+                                       )
+        self.__mlm_prep_target = partial(mlm_prep_target,
+                                        pad_token_id=self.config.pad_token_id,
+                                        cls_token_id=self.config.cls_token_id,
+                                        sep_token_id=self.config.sep_token_id,)
 
     def pad_inputs(self, inputs: Tensor) -> Tensor:
         """
@@ -75,16 +131,22 @@ class MLM_head(TaskHead):
         """
         return inputs
     
-    @ torch.no_grad()
+    @torch.no_grad()
     def prepare_inputs(self, inputs: Tensor, max_len: int) -> Tuple[Tensor, Tensor]:
         """
         Prepare inputs for the MLM head.
         """
 
-        functions = [self.replace_with_mask, self.replace_with_random, self.replace_with_identity]
+        ## parallel processing
+        # functions = [replace_with_mask, partial(replace_with_random, num_tokens=self.config.num_tokens), replace_with_identity]
+        # function_weights = [0.8, 0.1, 0.1]
+        # with futures.ProcessPoolExecutor(max_workers=4) as executor:
+        #     seqs_masked = list(executor.map(partial(self.__mlm_prep_mask, max_length=max_len, functions=functions, function_weights=function_weights), inputs))
+        #     seqs_target = list(executor.map(partial(self.__mlm_prep_target, max_length=max_len), inputs))
 
+        ## sequential processing
+        functions = [replace_with_mask, partial(replace_with_random, num_tokens=self.config.num_tokens), replace_with_identity]
         function_weights = [0.8, 0.1, 0.1]
-
         seqs_masked = []
         for seq in inputs:
 
@@ -103,6 +165,7 @@ class MLM_head(TaskHead):
 
         seqs_target = [seq.clone() for seq in inputs]
 
+
         # pad the beginning of the sequences with cls token
         seqs_target = [F.pad(seq, (1, 0), value=self.config.cls_token_id, mode='constant') for seq in seqs_target]
         seqs_masked = [F.pad(seq, (1, 0), value=self.config.cls_token_id, mode='constant') for seq in seqs_masked]
@@ -114,11 +177,7 @@ class MLM_head(TaskHead):
         # pad the sequences
         seqs_target = [F.pad(seq, (0, max_len - seq.shape[0]), value=self.config.pad_token_id, mode='constant') for seq in seqs_target]
         seqs_masked = [F.pad(seq, (0, max_len - seq.shape[0]), value=self.config.pad_token_id, mode='constant') for seq in seqs_masked]
-        
-        # for seq, seq_masked in zip(seqs_target, seqs_masked):
-        #     print("OG", seq)
-        #     print("MK:", seq_masked)
-        #     print()
+
 
         seqs_target = torch.stack(seqs_target, dim=0)
         seqs_masked = torch.stack(seqs_masked, dim=0)
@@ -200,3 +259,47 @@ class MLM_head(TaskHead):
 
 #     print("MLM loss:", mlm_loss.item())
 #     print("MLM out shape:", mlm_out.shape)
+
+
+# old prepare inputs 
+# sequential 
+
+# functions = [replace_with_mask, partial(replace_with_random, num_tokens=self.config.num_tokens), replace_with_identity]
+
+# function_weights = [0.8, 0.1, 0.1]
+
+# seqs_masked = []
+# for seq in inputs:
+
+#     seq_masked = seq.clone()
+
+#     replace_indices = random.choices(list(range(len(seq))), k=min(1, int(self.config.num_tokens * len(seq))))
+
+#     replace_functions = random.choices(functions, weights=function_weights, k=len(replace_indices))
+
+#     replaced_values = [f(seq[i]) for i, f in zip(replace_indices, replace_functions)]
+
+#     for i, v in zip(replace_indices, replaced_values):
+#         seq_masked[i] = v
+
+#     seqs_masked.append(seq_masked)
+
+# seqs_target = [seq.clone() for seq in inputs]
+
+
+# # pad the beginning of the sequences with cls token
+# seqs_target = [F.pad(seq, (1, 0), value=self.config.cls_token_id, mode='constant') for seq in seqs_target]
+# seqs_masked = [F.pad(seq, (1, 0), value=self.config.cls_token_id, mode='constant') for seq in seqs_masked]
+
+# # insert sep token
+# seqs_target = [F.pad(seq, (0, 1), value=self.config.sep_token_id, mode='constant') for seq in seqs_target]
+# seqs_masked = [F.pad(seq, (0, 1), value=self.config.sep_token_id, mode='constant') for seq in seqs_masked]
+
+# # pad the sequences
+# seqs_target = [F.pad(seq, (0, max_len - seq.shape[0]), value=self.config.pad_token_id, mode='constant') for seq in seqs_target]
+# seqs_masked = [F.pad(seq, (0, max_len - seq.shape[0]), value=self.config.pad_token_id, mode='constant') for seq in seqs_masked]
+
+# # for seq, seq_masked in zip(seqs_target, seqs_masked):
+# #     print("OG", seq)
+# #     print("MK:", seq_masked)
+# #     print()
