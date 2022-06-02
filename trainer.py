@@ -2,6 +2,7 @@ from collections import defaultdict
 from email.policy import default
 import random
 from re import I
+import numpy as np
 from numpy import arange
 from sklearn import datasets
 from sklearn.metrics import consensus_score
@@ -22,6 +23,7 @@ from torch.cuda import amp
 import wandb
 from tqdm import tqdm
 import timeit
+import faiss
 
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 scaler = amp.GradScaler()
@@ -284,21 +286,27 @@ def contrastive_step(
                     sop_head = sop_head.to(device)
 
 def evaluate_model(
-    transformer: QueryDocumentTransformer,
     tokenizer: Tokenizer,
+    transformer: QueryDocumentTransformer,
     mlm_head: MLM_head,
     sop_head: SentenceOrderPrediction
 ):
-    ds = QueryDocumentOrcasDataset(split="medium")[-100:]
-    dl = DataLoader(ds, batch_size=4, shuffle=False, num_workers=0)
 
+
+    ds_test = QueryDocumentOrcasDataset(split="small")
+    dl_test = DataLoader(ds_test, batch_size=4, shuffle=False, num_workers=0)
+    
     max_len = 512
     
     mlm_head.eval()
     sop_head.eval()
     transformer.eval()
+
     
-    for idx, batch in enumerate(dl):
+    d_embs = []
+    q_d_dict = {}
+    query_doc_index = 0
+    for idx, batch in tqdm(enumerate(dl_test), total=len(dl_test), desc="Evaluating"):
         q_batch, d_batch = batch
 
         # Tokenize the batch
@@ -306,17 +314,15 @@ def evaluate_model(
         tok_d_batch = tokenizer.encode_batch(d_batch, is_pretokenized=False, add_special_tokens=True)
 
         # Prepare qs
-        _, q_targets = mlm_head.prepare_inputs(inputs=[torch.tensor(t.ids) for t in tok_q_batch], max_len=max_len)
+        _, q_input = mlm_head.prepare_inputs(inputs=[torch.tensor(t.ids) for t in tok_q_batch], max_len=max_len)
 
         # Prepare ds
         seqs = [t.ids for t in tok_d_batch]
-        _, d_targets = sop_head.prepare_inputs(inputs=seqs, max_len=max_len)
+        d_input, _ = sop_head.prepare_inputs(inputs=seqs, max_len=max_len)
 
         # Move to GPU
-        # q_inputs = q_inputs.to(device)
-        q_targets = q_targets.to(device)
-        # d_inputs = d_inputs.to(device)
-        d_targets = d_targets.to(device)
+        q_input = q_input.to(device)
+        d_input = d_input.to(device)
 
         # Task indexes
         task_indexes = {
@@ -324,21 +330,81 @@ def evaluate_model(
             "sop": [len(q_batch), 2*len(q_batch)]
         }
 
-        # 8 * 768 
-        emb_ids = torch.cat([q_targets, d_targets], dim=0)
+        # print("q_inp: ", q_input.shape)
+        # print("d_inp: ", d_input.shape)
+
+        emb_ids = torch.cat([q_input, d_input], dim=0)
         with torch.no_grad():
-            mask = (emb_ids == 0).float()
+            mask = (emb_ids != 0).float() # pad ids
 
         embs = transformer(emb_ids, None, mask, task_indexes)
 
-        q_embs = embs[:len(q_batch)]
-        d_embs = embs[len(q_batch):]
+        qs = embs[:len(q_batch)]
+        ds = embs[len(q_batch):]
+
+        # Split mask
+        q_mask = mask[:len(q_batch)]
+        d_mask = mask[len(q_batch):]
+
+        with torch.no_grad():
+            qs_n_tokens = q_mask.sum(dim=1)
+        
+
+        with torch.no_grad():
+            d_cls_mask = (emb_ids[len(q_batch):] == 2).float()
+            d_cls_n_token = d_cls_mask.sum(dim=1)
+
+        # # Compute average embedding
+        qs = (qs * q_mask.unsqueeze(2)).sum(dim=1) / qs_n_tokens.unsqueeze(1)
+        ds = (ds * d_cls_mask.unsqueeze(2)).sum(dim=1) / d_cls_n_token.unsqueeze(1)
+
+        # print("qs_shape", qs.shape)
+        # print("ds_shape", ds.shape)
+
+        q_emb_faiss = qs.detach().cpu().numpy()
+        d_emb_faiss = ds.detach().cpu().numpy()
+
+        for i in range(len(q_batch)):
+            q_d_dict[query_doc_index] = q_emb_faiss[i]
+            d_embs.append(d_emb_faiss[i])
+            query_doc_index += 1
+
+
+        # dict: idx: (q_emb) // idx should be the same for the document in faiss
+
+        
+
+    print("Final index:", query_doc_index)
+    print("Len of d_embs:", len(d_embs))
+
+    index = faiss.IndexFlatL2(768)
+    embs = np.vstack(d_embs)
+    index.train(embs)
+    index.add(embs)
+    # faiss.write_index(index, "./data/index_small.faiss")
+
+    
+    for k in [5, 10, 20, 50, 100]:
+        true_cnt = 0
+        for qd_idx, q_emb in q_d_dict.items():
+            # print("Qemb:", q_emb.shape)
+            D, I = index.search(np.expand_dims(q_emb, axis=0), k)
+            # print("D", D)
+            # print("qd_idx", qd_idx)
+            # print(qd_idx in I[0])
+            # print("I", I)
+            if i in I[0]:
+                # print(np.where(I[0] == i)[0])
+                true_cnt += 1
+        print("Top {}: {}".format(k, true_cnt/len(q_d_dict)))
+        
+     
 
 
         
 if __name__ == "__main__":
-    run_name = "contrast_transformer"
-    wandb.init(config={}, project='_ssl_', name=run_name)
+    # run_name = "contrast_transformer"
+    # wandb.init(config={}, project='_ssl_', name=run_name)
 
     # dl = build_dataloader()
     # tokenizer = build_tokenizer(tokenizer_path="./BERT_tok-trained.json")
@@ -368,37 +434,59 @@ if __name__ == "__main__":
     # Set cuda visible devices
     # torch.cuda.empty_cache()
 
-    dl = build_dataloader()
+    # dl = build_dataloader()
+    # tokenizer = build_tokenizer(tokenizer_path="./BERT_tok-trained.json")
+
+    # pretrained_mlm = create_mlm_head(vocab=tokenizer.get_vocab())
+    # pretrained_mlm.load_state_dict(torch.load("./models/mlm_head_pretrain_2.pth"))
+    # pretrained_mlm = pretrained_mlm.to(device=device)
+
+    # pretrained_sop = create_sop_head()
+    # pretrained_sop.load_state_dict(torch.load("./models/sop_head_pretrain_2.pth"))
+    # pretrained_sop = pretrained_sop.to(device=device)
+
+    # pretrained_transformer = create_transformer(vocab=tokenizer.get_vocab())
+    # pretrained_transformer.load_state_dict(torch.load("./models/transformer_pretrain_3.pth"))
+    # pretrained_transformer = pretrained_transformer.to(device=device)
+
+    # optimizer = torch.optim.RAdam(
+    #     list(pretrained_transformer.parameters()) + \
+    #     list(pretrained_mlm.parameters()) + \
+    #     list(pretrained_sop.parameters()),
+    #     lr=1e-4,
+    #     weight_decay=1e-5
+    # )
+
+    # contrastive_step(
+    #     dl= dl, 
+    #     tokenizer=tokenizer, 
+    #     mlm_head=pretrained_mlm, 
+    #     sop_head=pretrained_sop, 
+    #     transformer=pretrained_transformer, 
+    #     optimizer=optimizer
+    # )
+
     tokenizer = build_tokenizer(tokenizer_path="./BERT_tok-trained.json")
 
-    pretrained_mlm = create_mlm_head(vocab=tokenizer.get_vocab())
-    pretrained_mlm.load_state_dict(torch.load("./models/mlm_head_pretrain_2.pth"))
-    pretrained_mlm = pretrained_mlm.to(device=device)
+    fine_mlm = create_mlm_head(vocab=tokenizer.get_vocab())
+    fine_mlm.load_state_dict(torch.load("./models/mlm_head_fine_2.pth"))
+    fine_mlm = fine_mlm.to(device=device)
 
-    pretrained_sop = create_sop_head()
-    pretrained_sop.load_state_dict(torch.load("./models/sop_head_pretrain_2.pth"))
-    pretrained_sop = pretrained_sop.to(device=device)
+    fine_sop = create_sop_head()
+    fine_sop.load_state_dict(torch.load("./models/sop_head_fine_2.pth"))
+    fine_sop = fine_sop.to(device=device)
 
-    pretrained_transformer = create_transformer(vocab=tokenizer.get_vocab())
-    pretrained_transformer.load_state_dict(torch.load("./models/transformer_pretrain_3.pth"))
-    pretrained_transformer = pretrained_transformer.to(device=device)
+    fine_transformer = create_transformer(vocab=tokenizer.get_vocab())
+    fine_transformer.load_state_dict(torch.load("./models/transformer_fine_2.pth"))
+    fine_transformer = fine_transformer.to(device=device)
 
-    optimizer = torch.optim.RAdam(
-        list(pretrained_transformer.parameters()) + \
-        list(pretrained_mlm.parameters()) + \
-        list(pretrained_sop.parameters()),
-        lr=1e-4,
-        weight_decay=1e-5
+    evaluate_model(
+        tokenizer=tokenizer,
+        transformer=fine_transformer,
+        mlm_head=fine_mlm,
+        sop_head=fine_sop
     )
 
-    contrastive_step(
-        dl= dl, 
-        tokenizer=tokenizer, 
-        mlm_head=pretrained_mlm, 
-        sop_head=pretrained_sop, 
-        transformer=pretrained_transformer, 
-        optimizer=optimizer
-    )
 
    
 

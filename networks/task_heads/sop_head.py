@@ -104,7 +104,7 @@ def process_sentence(
     elif len(res) > 1:
         split_idx = random.randint(1, len(res[0]) - 1)
         res = [res[0][:split_idx], res[0][split_idx:]]
-        shuffle = random.random() > 0.5
+        shuffle = random.random() > 1 # 0.5
         if shuffle:
             is_correct = False
             while not is_correct:
