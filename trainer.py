@@ -1,28 +1,17 @@
 from collections import defaultdict
-from email.policy import default
-import random
-from re import I
 import numpy as np
-from numpy import arange
-from sklearn import datasets
-from sklearn.metrics import consensus_score
-from sklearn.preprocessing import scale
 from dataset.msmarco_orcas.loader import QueryDocumentOrcasDataset
-from tokenization.vocab_tokenizers import train_BertWordPieceTokenizer
 from torch.utils.data import DataLoader
-from typing import Dict, List, Tuple, Union
+from typing import Dict
 from tokenizers import Tokenizer
-import sys
 import os
 import torch
 from networks.task_heads.mlm_head import MLM_head, MLM_Config
 from networks.task_heads.sop_head import SentenceOrderPrediction, SOPConfig
 from networks.transformers.query_document_transformer import QueryDocumentTransformer
-import torch.nn.functional as F
 from torch.cuda import amp
 import wandb
 from tqdm import tqdm
-import timeit
 import faiss
 
 os.environ["TOKENIZERS_PARALLELISM"] = "false"

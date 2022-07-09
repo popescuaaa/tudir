@@ -1,7 +1,4 @@
 from dataset.msmarco_orcas.loader import QueryDocumentOrcasDataset
-import os
-from tokenization.vocab_tokenizers import train_BertWordPieceTokenizer
-import torch
 
 if __name__ == '__main__':
     # split = OrcasSplit(split="all")

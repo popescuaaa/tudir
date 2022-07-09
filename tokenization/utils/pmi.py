@@ -3,15 +3,15 @@ import sys
 import os
 sys.path.append(os.getcwd())
 
-from tokenization.vocab_tokenizers import train_BertWordPieceTokenizer
+from notebooks.vocab_tokenizers import train_BertWordPieceTokenizer
 from dataset.squad.iterators import create_corpus_from_document_query_lists as squad_corpus
 from dataset.squad.iterators import create_query_document_lists_squad as squad_query_document_list
 
 from collections import defaultdict
-from typing import Callable, Dict, List, Tuple
+from typing import Dict, List, Tuple
 from plot import plot_distribution, plot_cummulative_dsitribution
 import numpy as np
-from tokenization.corpus_tokenizers import CorpusTokenizer, HuggingFaceCorpusTokenizer, WhiteSpaceCorpusTokenizer
+from tokenization.corpus_tokenizers import CorpusTokenizer, HuggingFaceCorpusTokenizer
 from tqdm import tqdm
 import math
 

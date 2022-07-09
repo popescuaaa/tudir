@@ -4,10 +4,10 @@ import os
 
 import numpy as np
 sys.path.append(os.getcwd())
-from typing import Dict, Iterable, List, Set, Union
+from typing import Dict, List, Set, Union
 from tqdm import tqdm
-from tokenization.corpus_tokenizers import HuggingFaceCorpusTokenizer, WhiteSpaceCorpusTokenizer
-from tokenization.vocab_tokenizers import train_BertWordPieceTokenizer
+from tokenization.corpus_tokenizers import HuggingFaceCorpusTokenizer
+from notebooks.vocab_tokenizers import train_BertWordPieceTokenizer
 from scipy import sparse
 from sklearn.feature_extraction.text import TfidfVectorizer
 from dataset.squad.iterators import create_corpus_from_document_query_lists as squad_corpus
