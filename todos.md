@@ -12,9 +12,13 @@
 
 
 ### Useful
-- [ ] Clean the project files and remove junk
 
+- [ ] Clean the project files and remove junk
+- [ ] Create tests for all non-nn parts until mid August (~11)
+- [ ] Redo requirements.txt
+- [ ] Restructure folders
 ----
+
 ### Dev changes 
 1. Rewrite sop head (faster) 
 2. Rewrite training (faster) => parallel ?
