@@ -1,5 +1,6 @@
-## TODOS
+## TODOS :tent:
 
+### Main tasks
 ----
 - [ ] Understand the topic
 - [ ] Find sota: create baseline for dataset + compare
@@ -8,6 +9,10 @@
 ----
 - [ ] Reorganize the code: modular, one class for the IR 
 - [ ] (possible) Change the dataset if needed
+
+
+### Useful
+- [ ] Clean the project files and remove junk
 
 ----
 ### Dev changes 
